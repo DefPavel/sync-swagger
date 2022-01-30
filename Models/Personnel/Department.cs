@@ -2,7 +2,7 @@
 
 namespace sync_swagger.Models.Personnel
 {
-    public class Department
+    public class Department : ResponceSync
     {
         [JsonPropertyName("id")]
         public int Id { get; set; }

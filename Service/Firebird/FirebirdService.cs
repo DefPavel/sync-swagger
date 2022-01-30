@@ -35,6 +35,7 @@ namespace sync_swagger.Service.Firebird
             {
                 List.Add(new Department
                 {
+                    
                     Name = "NAme"
                     /*FullName = reader["FIO"] != DBNull.Value ? reader.GetString(0) : "Не указано",
                     Type = reader["NAME"] != DBNull.Value ? reader.GetString(1) : "Не указано",

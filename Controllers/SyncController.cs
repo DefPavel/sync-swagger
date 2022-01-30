@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using sync_swagger.Models.Personnel;
 using sync_swagger.Service.Api;
 using sync_swagger.Service.Firebird;
 using System.Net.Http;
@@ -18,12 +19,10 @@ namespace sync_swagger.Controllers
             _logger = logger;
         }
 
-
-
         // Синхонизация из Firebird в Postgres (Все Отделы и их должностя)
         [Route("[controller]/[action]")]
         [HttpPost]
-        public async Task<ActionResult> SyncDepartment(string token)
+        public async Task<ActionResult<Department>> SyncDepartment(string token)
         {
             ApiService api = new(_httpClient);
             //Получить данные отделов из Firebird
@@ -34,9 +33,7 @@ namespace sync_swagger.Controllers
                 return new BadRequestResult();
             }
             // Отправить массив данных на ApiServer
-            await api.PostArrayByTokenAsync(@"/auth", token, departments);
-
-            return new OkResult();
+            return await api.PostArrayByTokenAsync(@"/auth", token, departments);
         }
     }
 }

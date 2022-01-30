@@ -1,6 +1,6 @@
 ﻿namespace sync_swagger.Models.Personnel
 {
-    public class Position
+    public class Position : ResponceSync
     {
     }
 }
