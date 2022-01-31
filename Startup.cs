@@ -42,7 +42,6 @@ namespace sync_swagger
                 app.UseSwagger();
                 app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "sync_swagger v1"));
             }
-
             app.UseRouting();
 
             app.UseAuthorization();

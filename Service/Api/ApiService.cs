@@ -1,19 +1,25 @@
-﻿using System;
+﻿using Microsoft.Extensions.Configuration;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Configuration;
 
 namespace sync_swagger.Service.Api
 {
     public class ApiService
     {
+
+        private IConfiguration Configuration { get; }
+
         private static readonly string _ApiBaseUrl = @"http://localhost:8080/api";
 
         private readonly HttpClient _client;
 
+  
         public ApiService(HttpClient client)
         {
             _client = client;
@@ -23,6 +29,7 @@ namespace sync_swagger.Service.Api
         // async serialize
         private static async Task<string> GetJson(object obj)
         {
+            //_ = Configuration["fgdfgdfgdfgdfg"];
             using var stream = new MemoryStream();
             await JsonSerializer.SerializeAsync(stream, obj, obj.GetType());
             stream.Position = 0;
