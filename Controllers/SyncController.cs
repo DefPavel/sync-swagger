@@ -22,18 +22,37 @@ namespace sync_swagger.Controllers
         // Синхонизация из Firebird в Postgres (Все Отделы и их должностя)
         [Route("[controller]/[action]")]
         [HttpPost]
-        public async Task<ActionResult<Department>> SyncDepartment(string token)
+        public async Task<ActionResult<GlobalArray>> DepartmentAndPosition(string token)
         {
             ApiService api = new(_httpClient);
+            GlobalArray globalArray = new();
             //Получить данные отделов из Firebird
-            var departments = await FirebirdService.GetDepartment();
+            globalArray.ArrayDepartments = await FirebirdService.GetDepartment();
             // Если запрос пустой
-            if(departments == null)
+            if (globalArray.ArrayDepartments == null)
             {
                 return new BadRequestResult();
             }
-            // Отправить массив данных на ApiServer
-            return await api.PostArrayByTokenAsync(@"/auth", token, departments);
+            // Отправить массив данных на ApiServer для синхронизации
+            return await api.PostArrayByTokenAsync(@"/pers/tree/sync", token, globalArray);
+        }
+
+        // Синхонизация из Firebird в Postgres (Все Сотрудники)
+        [Route("[controller]/[action]")]
+        [HttpPost]
+        public async Task<ActionResult<GlobalArray>> Persons(string token)
+        {
+            ApiService api = new(_httpClient);
+            GlobalArray globalArray = new();
+            //Получить данные отделов из Firebird
+            globalArray.ArrayPersons = await FirebirdService.GetPersonsAsync();
+            // Если запрос пустой
+            if (globalArray.ArrayPersons == null)
+            {
+                return new BadRequestResult();
+            }
+            // Отправить массив данных на ApiServer для синхронизации
+            return await api.PostArrayByTokenAsync(@"/pers/person/sync", token, globalArray);
         }
     }
 }

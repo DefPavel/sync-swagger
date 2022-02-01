@@ -1,19 +1,16 @@
-﻿using Microsoft.Extensions.Configuration;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
-using System.Configuration;
+using sync_swagger.Models.Personnel;
 
 namespace sync_swagger.Service.Api
 {
     public class ApiService
     {
-
-        private IConfiguration Configuration { get; }
 
         private static readonly string _ApiBaseUrl = @"http://localhost:8080/api";
 
@@ -43,7 +40,7 @@ namespace sync_swagger.Service.Api
             // Get convert data json
             var content = await GetJson(obj);
             // web respone 
-            var httpResponse = await _client.PostAsync(_ApiBaseUrl + url, new StringContent(content, Encoding.Default, "application/json"));
+            var httpResponse = await _client.PostAsync(_ApiBaseUrl + url, new StringContent(content, Encoding.UTF8, "application/json"));
 
             if (!httpResponse.IsSuccessStatusCode)
             {
@@ -54,42 +51,23 @@ namespace sync_swagger.Service.Api
             return createdTask;
         }
 
-        public async Task<T> PostArrayByTokenAsync<T>(string url, string token, List<T> objs)
+        public async Task<GlobalArray> PostArrayByTokenAsync(string url, string token, GlobalArray objs)
         {
             // Get convert data json
             var content = await GetJson(objs);
             // Add token 
             _client.DefaultRequestHeaders.Add("auth-token", token);
             // web respone  
-            var httpResponse = await _client.PostAsync(_ApiBaseUrl + url, new StringContent(content, Encoding.Default, "application/json"));
+            var httpResponse = await _client.PostAsync(_ApiBaseUrl + url, new StringContent(content, Encoding.UTF8, "application/json"));
 
             if (!httpResponse.IsSuccessStatusCode)
             {
                 throw new Exception("Cannot add a todo task");
             }
 
-            var createdTask = JsonSerializer.Deserialize<T>(await httpResponse.Content.ReadAsStringAsync());
+            var createdTask = JsonSerializer.Deserialize<GlobalArray>(await httpResponse.Content.ReadAsStringAsync());
             return createdTask;
         }
-
-        public async Task<T> PostByTokenAsync<T>(string url, string token, T obj)
-        {
-            // Get convert data json
-            var content = await GetJson(obj);
-            // Add token 
-            _client.DefaultRequestHeaders.Add("auth-token", token);
-            // web respone  
-            var httpResponse = await _client.PostAsync(_ApiBaseUrl + url, new StringContent(content, Encoding.Default, "application/json"));
-
-            if (!httpResponse.IsSuccessStatusCode)
-            {
-                throw new Exception("Cannot add a todo task");
-            }
-
-            var createdTask = JsonSerializer.Deserialize<T>(await httpResponse.Content.ReadAsStringAsync());
-            return createdTask;
-        }
-
         // Get httpClient
         public async Task<List<T>> GetAllAsync<T>(string url)
         {

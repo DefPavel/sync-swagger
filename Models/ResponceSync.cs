@@ -12,5 +12,6 @@ namespace sync_swagger
         public int Failed { get; set; } = 0;
         [JsonPropertyName("details")]
         public string[] Details = System.Array.Empty<string>();
+       
     }
 }
