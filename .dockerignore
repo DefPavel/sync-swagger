@@ -1,0 +1,12 @@
+bin/
+obj/
+#Ignoring all the markdown and class files
+*.md
+# root files
+.git
+.cache
+.gitignore
+.gitmodules
+.travis.yml
+.gitlab-ci.yml
+docker-compose.yml

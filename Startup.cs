@@ -23,7 +23,7 @@ namespace sync_swagger
             services.AddControllers();
             services.AddSwaggerGen(c =>
             {
-                c.SwaggerDoc("v1", new OpenApiInfo { Title = "Синхронизация двух баз данных", Version = "v1" });
+                c.SwaggerDoc("v1", new OpenApiInfo { Title = "Sync JMU - Personnel", Version = "v1" });
             });
         }
 
