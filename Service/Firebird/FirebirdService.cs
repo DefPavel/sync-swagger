@@ -11,6 +11,38 @@ namespace sync_swagger.Service.Firebird
         private static readonly string StringConnection = "database=192.168.250.6:Pers;user=sysdba;password=Vtlysq~Bcgjkby2020;Charset=win1251;";
         private static int num;
 
+        public static string FirstUpper(string str)
+        {
+            string[] s = str.Split(' ');
+
+            for (int i = 0; i < s.Length; i++)
+            {
+                if (s[i].Length > 1)
+                    s[i] = s[i][..1].ToUpper() + s[i][1..].ToLower();
+                else s[i] = s[i].ToUpper();
+            }
+            return string.Join(" ", s);
+        }
+
+        #region Random
+        private static int GenerateDigt(Random r)
+        {
+            return r.Next();
+        }
+
+        private static int Randoms()
+        {
+            Random r = new();
+            for (int i = 0; i < 100; i++)
+            {
+                GenerateDigt(r);
+
+            }
+            return r.Next(10000000, 50000000);
+
+        }
+        #endregion
+
         #region Список должностей на отдел
         public static async Task<IEnumerable<Position>> GetPositionsAsync(int idDep)
         {
@@ -559,5 +591,419 @@ namespace sync_swagger.Service.Firebird
         }
 
         #endregion
+
+        #region Список отпусков всех сотрудников
+
+        public static async Task<IEnumerable<Vacations>> GetVacations()
+        {
+            List<Vacations> List = new();
+            string sql = " select s.id , o.period , o.dlina ,o.ostatok, o.date_nach , o.date_kon,  p.name , p.date_crt , t.name as typ " +
+                " from sotr s " +
+                " inner join otpusk o on s.id = o.sotr_id " +
+                " inner join typ_otpusk t on o.typ_nick = t.nick " +
+                " inner join prikaz p on o.prikaz_id = p.id " +
+                " inner join sotr_doljn sd on s.id = sd.sotr_id " +
+                " where sd.dolj_id <> 0 and s.id <> 5181" +
+                " order by s.id desc";
+            await using FbConnection connection = new(StringConnection);
+            connection.Open();
+            await using FbTransaction transaction = await connection.BeginTransactionAsync();
+            await using FbCommand command = new(sql, connection, transaction);
+            FbDataReader reader = await command.ExecuteReaderAsync();
+            if (reader.HasRows)
+            {
+                while (await reader.ReadAsync())
+                {
+                    List.Add(new Vacations
+                    {
+                        PersonId = reader.GetInt32(0),
+                        Period = reader["period"] != DBNull.Value ? reader.GetString(1) : "Не указано",
+                        Length = reader["dlina"] != DBNull.Value ? reader.GetInt32(2) : 0,
+                        Ostatok = reader["ostatok"] != DBNull.Value ? reader.GetInt32(3) : 0,
+                        DateStart = reader["date_nach"] != DBNull.Value ? reader.GetDateTime(4).ToString("yyyy-MM-dd") : null,
+                        DateEnd = reader["date_kon"] != DBNull.Value ? reader.GetDateTime(5).ToString("yyyy-MM-dd") : null,
+                        OrderName = $"{reader.GetString(6)}(от {reader.GetDateTime(7).ToShortDateString()})",
+                        DateOrder = reader.GetDateTime(7).ToString("yyyy-MM-dd"),
+                        TypeVacation = reader.GetString(8),
+                    });
+
+                }
+            }
+            await reader.CloseAsync();
+            return List.AsReadOnly();
+        }
+
+        #endregion
+
+        #region Список документов
+
+        public static async Task<IEnumerable<Documents>> GetDocumentsAsync()
+        {
+            List<Documents> list = new();
+            //string path = "D:\\documents\\";
+            string sql = "select distinct s.id, td.name,  sdd.doc , sdd.name " +
+                " from sotr s  " +
+                " inner join sotr_doljn sd on s.id = sd.sotr_id " +
+                " inner join sotr_document sdd on s.id = sdd.sotr_id " +
+                " inner join typ_sotr_doc td on sdd.typ = td.id " +
+                " where sd.dolj_id <> 0 and sdd.name is not null " +
+                " order by s.id desc ";
+
+            await using FbConnection connection = new(StringConnection);
+            connection.Open();
+            await using FbTransaction transaction = await connection.BeginTransactionAsync();
+            await using FbCommand command = new(sql, connection, transaction);
+            FbDataReader reader = await command.ExecuteReaderAsync();
+            if (reader.HasRows)
+            {
+
+                while (await reader.ReadAsync())
+                {
+                    int random = Randoms();
+
+                    list.Add(new Documents
+                    {
+                        IdPers = reader.GetInt32(0),
+                        Type = reader.GetString(1),
+                        Document = $"/Pers/documents/doc_{random}.jpg",
+                        Name = reader.GetString(3),
+
+                    });
+                    /* if(reader["doc"] != DBNull.Value)
+                     {
+                         using FileStream imageFile = new($"{path}doc_{random}.jpg", FileMode.Create);
+                         imageFile.Write((reader["doc"] as byte[]), 0, (reader["doc"] as byte[]).Length);
+                         imageFile.Flush();
+                     }
+
+                     Console.WriteLine(i++);
+                     await Task.Delay(100);
+                    */
+
+                }
+            }
+            await reader.CloseAsync();
+            return list.AsReadOnly();
+        }
+
+        #endregion
+
+        #region Список награждений
+        public static async Task<IEnumerable<Rewarding>> GetRewarding()
+        {
+            List<Rewarding> List = new();
+            string sql = " select distinct s.id , tn.name , sn.prim , p.name as order_name, p.date_crt as date_order  , sn.date_crt as date_issuing " +
+                " from sotr s " +
+                " inner join sotr_nagrad sn on s.id = sn.sotr_id " +
+                " inner join sotr_doljn sd on s.id = sd.sotr_id " +
+                " inner join typ_nagrady tn on sn.nagrad_id = tn.id " +
+                " left join prikaz p on p.id = sn.prikaz_id " +
+                " where sd.dolj_id <> 0" +
+                "order by s.id desc";
+            await using FbConnection connection = new(StringConnection);
+            connection.Open();
+            await using FbTransaction transaction = await connection.BeginTransactionAsync();
+            await using FbCommand command = new(sql, connection, transaction);
+            FbDataReader reader = await command.ExecuteReaderAsync();
+            if (reader.HasRows)
+            {
+                while (await reader.ReadAsync())
+                {
+                    List.Add(new Rewarding
+                    {
+                        PersonId = reader.GetInt32(0),
+                        Name = reader.GetString(1),
+                        NumberDocument = reader["prim"] != DBNull.Value ? reader.GetString(2) : null,
+                        OrderName = reader["date_order"] != DBNull.Value ? $"{reader.GetString(3)}(от {reader.GetDateTime(4).ToShortDateString()})" : null,
+                        DateOrder = reader["date_order"] != DBNull.Value ? reader.GetDateTime(4).ToString("yyyy-MM-dd") : null,
+                        DateIssuing = reader["date_issuing"] != DBNull.Value ? reader.GetDateTime(5).ToString("yyyy-MM-dd") : null,
+                    });
+
+                }
+            }
+            await reader.CloseAsync();
+            return List.AsReadOnly();
+        }
+
+        #endregion
+
+        #region Повыщение квалификации
+        public static async Task<IEnumerable<Qualification>> GetQualification()
+        {
+            List<Qualification> list = new();
+            string sql = "select distinct s.id, kv.kurs_name , kv.date_nach , kv.date_kon , kv.mesto_prohogd ,kv.n_svid , kv.date_vidachy " +
+                " from sotr s " +
+                " inner join sotr_doljn sd on s.id = sd.sotr_id " +
+                " inner join kvalification kv on kv.sotr_id = s.id " +
+                " where sd.dolj_id <> 0 and kv.kurs_name is not null  order by s.id desc ";
+
+            await using FbConnection connection = new(StringConnection);
+            connection.Open();
+            await using FbTransaction transaction = await connection.BeginTransactionAsync();
+            await using FbCommand command = new(sql, connection, transaction);
+            FbDataReader reader = await command.ExecuteReaderAsync();
+            if (reader.HasRows)
+            {
+                while (await reader.ReadAsync())
+                {
+                    list.Add(new Qualification
+                    {
+                        IdPerson = reader.GetInt32(0),
+                        CourseName = reader.GetString(1),
+                        DateBegin = reader["date_nach"] != DBNull.Value ? reader.GetDateTime(2).ToString("yyyy-MM-dd") : null,
+                        DateEnd = reader["date_kon"] != DBNull.Value ? reader.GetDateTime(3).ToString("yyyy-MM-dd") : null,
+                        Place = reader["mesto_prohogd"] != DBNull.Value ? reader.GetString(4) : "Не указано",
+                        NumberCertificate = reader["n_svid"] != DBNull.Value ? reader.GetString(5) : "Не указано",
+                        DateIssue = reader["date_vidachy"] != DBNull.Value ? reader.GetDateTime(6).ToString("yyyy-MM-dd") : null,
+                    });
+                }
+            }
+            await reader.CloseAsync();
+            return list.AsReadOnly();
+        }
+        #endregion
+
+        #region Ученое Звание
+        public static async Task<IEnumerable<UchZvanie>> GetUchZvanieList()
+        {
+            List<UchZvanie> List = new();
+
+            string sql = "select distinct s.id , tp.name, uz.kafedra , uz.date_prisv_zvan , uz.n_docum, uz.place_prisv_zvan " +
+                "from sotr s " +
+                " inner join sotr_doljn sd on s.id = sd.sotr_id " +
+                " inner join uch_zvan uz on s.id = uz.sotr_id " +
+                " inner join typ_zvan tp on uz.zvan_id = tp.id " +
+                " where sd.dolj_id <> 0 ";
+
+            await using FbConnection connection = new(StringConnection);
+            connection.Open();
+            await using FbTransaction transaction = await connection.BeginTransactionAsync();
+            await using FbCommand command = new(sql, connection, transaction);
+            FbDataReader reader = await command.ExecuteReaderAsync();
+            if (reader.HasRows)
+            {
+                while (await reader.ReadAsync())
+                {
+                    List.Add(new UchZvanie
+                    {
+                        IdPerson = reader.GetInt32(0),
+                        Type = reader.GetString(1),
+                        Department = reader["kafedra"] != DBNull.Value ? reader.GetString(2) : "Не указано",
+                        DateDateIssue = reader["date_prisv_zvan"] != DBNull.Value ? reader.GetDateTime(3).ToString("yyyy-MM-dd") : null,
+                        Document = reader["n_docum"] != DBNull.Value ? reader.GetString(4) : "Не указано",
+                        Place = reader["place_prisv_zvan"] != DBNull.Value ? reader.GetString(5) : "Не указано"
+                    });
+                }
+
+            }
+            await reader.CloseAsync();
+            return List.AsReadOnly();
+
+        }
+        #endregion
+
+        #region Ученая степень
+        public static async Task<IEnumerable<ScientificDegree>> GetScientificDegrees()
+        {
+            List<ScientificDegree> list = new();
+            string sql = " select ns.sotr_id " +
+                ", ns.n_diploma" +
+                ", ns.date_vyd" +
+                ", ns.stepen_nick" +
+                ", ns.nauk_otrasl" +
+                ", ns.nauk_spec" +
+                ", ns.tema_disert" +
+                ", ns.place_prisv_zvan" +
+                ", ns.city_prisv" +
+                ", ns.jobs_after_asp" +
+                ", ns.kol_scientific_work" +
+                ", ns.kol_zayav_intelekt" +
+                ", ns.change_text" +
+                ", ns.comment" +
+                " from sotr s " +
+                " inner join sotr_doljn sd on s.id = sd.sotr_id " +
+                " inner join NAUCH_STEPEN ns on ns.sotr_id = s.id " +
+                " where sd.dolj_id <> 0 ";
+
+            await using FbConnection connection = new(StringConnection);
+            connection.Open();
+            await using FbTransaction transaction = await connection.BeginTransactionAsync();
+            await using FbCommand command = new(sql, connection, transaction);
+            FbDataReader reader = await command.ExecuteReaderAsync();
+
+            if (reader.HasRows)
+            {
+                while (await reader.ReadAsync())
+                {
+                    string Stepen = reader.GetString(3) == "kn" ? "Кандидат наук" : "Доктор наук";
+                    list.Add(new ScientificDegree
+                    {
+                        PersonId = reader.GetInt32(0),
+                        NumberDocument = reader["n_diploma"] != DBNull.Value ? reader.GetString(1) : "Не указано",
+                        DateOfIssue = reader["date_vyd"] != DBNull.Value ? reader.GetDateTime(2).ToString("yyyy-MM-dd") : null,
+                        Type = Stepen,
+                        ScientificBranch = reader["nauk_otrasl"] != DBNull.Value ? reader.GetString(4) : "Не указано",
+                        ScientificSpecialty = reader["nauk_otrasl"] != DBNull.Value ? reader.GetString(5).Replace("  ", " ") : "Не указано",
+                        Dissertation = reader["tema_disert"] != DBNull.Value ? reader.GetString(6) : "Не указано",
+                        Place = reader["place_prisv_zvan"] != DBNull.Value ? reader.GetString(7).Replace("  ", " ") : "Не указано",
+                        City = reader["city_prisv"] != DBNull.Value ? reader.GetString(8) : "Не указано",
+                        JobAfter = reader["jobs_after_asp"] != DBNull.Value ? reader.GetString(9) : "Не указано",
+                        CountScientific = reader["kol_scientific_work"] != DBNull.Value ? reader.GetInt32(10) : 0,
+                        RequestScientific = reader["kol_zayav_intelekt"] != DBNull.Value ? reader.GetString(11) : "",
+                        Change = reader["change_text"] != DBNull.Value ? reader.GetString(12) : "",
+                        Description = reader["comment"] != DBNull.Value ? reader.GetString(13) : ""
+
+                    });
+                }
+            }
+            await reader.CloseAsync();
+            return list.AsReadOnly();
+
+
+
+        }
+        #endregion
+
+        #region Служебные перемещения
+        public static async Task<IEnumerable<Move>> GetMovesAsync()
+        {
+            List<Move> List = new();
+            string sql = "select distinct " +
+                "sm.date_crt ," +
+                " p.name ," +
+                " p.typ ," +
+                " p.date_crt  ," +
+                " sm.kolvo_b ," +
+                " sm.kolvo_nb ," +
+                " sm.otdel_name ," +
+                " sm.dolj_name ," +
+                " sm.is_osn ," +
+                " sm.typ_dog ," +
+                " sm.date_kontr_nach ," +
+                " sm.date_kontr_kon ," +
+                " sm.date_drop ," +
+                " sm.OTP_DAYS ," +
+                " sm.prikaz_end, " +
+                " sotr_move.sotr_id," +
+                " p.DATE_CRT as dcrt "
+                + " from sotr s "
+                + " inner join sotr_doljn sd on s.id = sd.sotr_id " +
+                " inner join  sotr_move sm on sm.sotr_id = s.id " +
+                " inner join prikaz p on p.id = sm.prikaz_id " +
+                "  where sd.dolj_id <> 0 " +
+                "  order by s.id desc ";
+            //and sm.id <> 1192 and sm.id <> 2321 and sm.id <> 565 and sm.sotr_id <> 1459 and sm.sotr_id <> 1839
+            await using FbConnection connection = new(StringConnection);
+            connection.Open();
+            await using FbTransaction transaction = await connection.BeginTransactionAsync();
+            await using FbCommand command = new(sql, connection, transaction);
+            FbDataReader reader = await command.ExecuteReaderAsync();
+            if (reader.HasRows)
+            {
+                while (await reader.ReadAsync())
+                {
+
+                    /*string typeOrder =
+                        reader.GetString(4) == "priyom" ? "Приём" :
+                        reader.GetString(4) == "uvolnenie" ? "Увольнение" :
+                        reader.GetString(4) == "perev" ? "Перевод" :
+                        reader.GetString(4) == "otpusk" ? "Отпуск" :
+                        reader.GetString(4) == "voensbor" ? "Военные сборы" :
+                        reader.GetString(4) == "prodstd" ? "Продление СТД" :
+                        reader.GetString(4) == "den" ? "Денежная компенсация за неиспользованный отпуск" :
+                        "";*/
+
+                    string typeOrder =
+                        reader.GetString(2) == "priyom" ? "Приём" :
+                        reader.GetString(2) == "uvolnenie" ? "Увольнение" :
+                        reader.GetString(2) == "perev" ? "Перевод" :
+                        reader.GetString(2) == "prodstd" ? "Продление СТД" :
+                        reader.GetString(2) == "den" ? "Денежная компенсация за неиспользованный отпуск" :
+                        "";
+
+                    //string dropNameOrder = reader.GetString(14)[..reader.GetString(14).IndexOf('(')].TrimEnd();
+                    //string replaceNameOrder = reader["prikaz_end"] != DBNull.Value ? reader.GetString(14) : null;
+
+
+
+                    // string[] words = replaceNameOrder?.Split(new char[] { '(' });
+
+
+                    //if(reader.GetInt32(15) == 6611)
+                    //    Console.WriteLine($"{words[0]} {words[1]}");
+
+                    string Contract = reader["typ_dog"] != DBNull.Value ? FirstUpper(reader.GetString(9)) : "Не указано";
+
+
+                    if (reader.GetString(9) == "Постійне місце роботи")
+                    {
+                        Console.WriteLine(reader.GetInt32(15));
+                        Contract = "Постоянное место";
+                    }
+                    if (reader.GetString(9) == "Лікарняний лист")
+                    {
+                        Contract = "Больничный лист";
+                    }
+
+
+                    List.Add(new Move
+                    {
+                        dateInsert = reader.GetDateTime(0).ToString("yyyy-MM-dd"),
+                        order = $"{reader.GetString(1)} от({reader.GetDateTime(3).ToShortDateString()})",
+                        typeOrder = typeOrder,
+                        count_budget = reader["kolvo_b"] != DBNull.Value ? reader.GetDecimal(4) : 0,
+                        count_nobudget = reader["kolvo_nb"] != DBNull.Value ? reader.GetDecimal(5) : 0,
+                        name_dep = reader.GetString(6),
+                        position = reader.GetString(7),
+                        isMain = reader.GetString(8) == "T",
+                        Contract = reader["typ_dog"] != DBNull.Value ? reader.GetString(9) : "Не указано",
+                        dateBegin = reader["date_kontr_nach"] != DBNull.Value ? reader.GetDateTime(10).ToString("yyyy-MM-dd") : null,
+                        dateEnd = reader["date_kontr_kon"] != DBNull.Value ? reader.GetDateTime(11).ToString("yyyy-MM-dd") : null,
+                        dateDrop = reader["date_drop"] != DBNull.Value ? reader.GetDateTime(12).ToString("yyyy-MM-dd") : null,
+                        dayVacation = reader["OTP_DAYS"] != DBNull.Value ? reader.GetInt32(13) : 0,
+                        orderDrop = reader["prikaz_end"] != DBNull.Value ? reader.GetString(14).Replace("  ", " ") : null,
+                        PersonId = reader.GetInt32(15),
+                        DateOrder = reader["dcrt"] != DBNull.Value ? reader.GetDateTime(16).ToString("yyyy-MM-dd") : null,
+
+                    });
+                }
+            }
+            await reader.CloseAsync();
+            return List.AsReadOnly();
+
+        }
+        #endregion
+
+        #region Генерация фотографий 3x4
+
+        public static async Task<IEnumerable<Image>> GetPhoto()
+        {
+            List<Image> List = new();
+            string sql = "select s.id, s.photo" +
+                " from sotr s" +
+                " inner join sotr_doljn sd on s.id = sd.sotr_id " +
+                " where s.photo is not null and sd.dolj_id <> 0" +
+                " order by s.id desc ";
+
+            await using FbConnection connection = new(StringConnection);
+            connection.Open();
+            await using FbTransaction transaction = await connection.BeginTransactionAsync();
+            await using FbCommand command = new(sql, connection, transaction);
+            FbDataReader reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                List.Add(new Image
+                {
+                    id_person = reader.GetInt32(0),
+                    photo = reader["photo"] as byte[] != null ? Convert.ToBase64String(reader["photo"] as byte[]) : null
+                    //photo = (byte[])reader["photo"],
+                });
+            }
+            await reader.CloseAsync();
+            return List.AsReadOnly();
+
+        }
+        #endregion
+
     }
 }

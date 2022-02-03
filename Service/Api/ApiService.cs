@@ -5,13 +5,13 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using sync_swagger.Models;
 using sync_swagger.Models.Personnel;
 
 namespace sync_swagger.Service.Api
 {
     public class ApiService
     {
-
         private static readonly string _ApiBaseUrl = @"http://localhost:8080/api";
 
         private readonly HttpClient _client;
