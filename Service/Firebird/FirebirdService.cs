@@ -8,7 +8,7 @@ namespace sync_swagger.Service.Firebird
 {
     public static class FirebirdService
     {
-        private static readonly string StringConnection = "database=192.168.250.6:Pers;user=sysdba;password=Vtlysq~Bcgjkby2020;Charset=win1251;";
+        private static readonly string StringConnection = "database=192.168.250.72:Pers;user=sysdba;password=Vtlysq~Bcgjkby2020;Charset=win1251;";
         private static int num;
 
         public static string FirstUpper(string str)
@@ -953,8 +953,8 @@ namespace sync_swagger.Service.Firebird
                         typeOrder = typeOrder,
                         count_budget = reader["kolvo_b"] != DBNull.Value ? reader.GetDecimal(4) : 0,
                         count_nobudget = reader["kolvo_nb"] != DBNull.Value ? reader.GetDecimal(5) : 0,
-                        name_dep = reader.GetString(6),
-                        position = reader.GetString(7),
+                        name_dep = reader["otdel_name"] != DBNull.Value ? reader.GetString(6) : "Не укаазно",
+                        position = reader["dolj_name"] != DBNull.Value ? reader.GetString(7) : "Не укаазно",
                         isMain = reader.GetString(8) == "T",
                         Contract = reader["typ_dog"] != DBNull.Value ? reader.GetString(9) : "Не указано",
                         dateBegin = reader["date_kontr_nach"] != DBNull.Value ? reader.GetDateTime(10).ToString("yyyy-MM-dd") : null,
