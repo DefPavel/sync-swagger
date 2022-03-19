@@ -12,7 +12,7 @@ namespace sync_swagger.Models.Personnel
         public string DateEnd { get; set; }
         [JsonPropertyName("for_life")]
         public bool ForLife { get; set; }
-        [JsonPropertyName("groups")]
+        [JsonPropertyName("group")]
         public int Group { get; set; }
     }
 }

@@ -890,7 +890,7 @@ namespace sync_swagger.Service.Firebird
                 + " inner join sotr_doljn sd on s.id = sd.sotr_id " +
                 " inner join  sotr_move sm on sm.sotr_id = s.id " +
                 " inner join prikaz p on p.id = sm.prikaz_id " +
-                "  where sd.dolj_id <> 0 " +
+                "  where sd.dolj_id <> 0 and  p.date_crt is not null" +
                 "  order by s.id desc ";
             //and sm.id <> 1192 and sm.id <> 2321 and sm.id <> 565 and sm.sotr_id <> 1459 and sm.sotr_id <> 1839
             await using FbConnection connection = new(StringConnection);
@@ -933,6 +933,7 @@ namespace sync_swagger.Service.Firebird
                     //    Console.WriteLine($"{words[0]} {words[1]}");
 
                     string Contract = reader["typ_dog"] != DBNull.Value ? FirstUpper(reader.GetString(9)) : "Не указано";
+                    string DateCrt = reader["dcrt"] != DBNull.Value ? reader.GetDateTime(3).ToShortDateString() : "SUKA";
 
 
                     if (reader.GetString(9) == "Постійне місце роботи")
@@ -949,7 +950,7 @@ namespace sync_swagger.Service.Firebird
                     List.Add(new Move
                     {
                         dateInsert = reader.GetDateTime(0).ToString("yyyy-MM-dd"),
-                        order = $"{reader.GetString(1)} от({reader.GetDateTime(3).ToShortDateString()})",
+                        order = $"{reader.GetString(1)} от({DateCrt})",
                         typeOrder = typeOrder,
                         count_budget = reader["kolvo_b"] != DBNull.Value ? reader.GetDecimal(4) : 0,
                         count_nobudget = reader["kolvo_nb"] != DBNull.Value ? reader.GetDecimal(5) : 0,
@@ -992,12 +993,21 @@ namespace sync_swagger.Service.Firebird
             FbDataReader reader = await command.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
-                List.Add(new Image
+                try
                 {
-                    id_person = reader.GetInt32(0),
-                    photo = reader["photo"] as byte[] != null ? Convert.ToBase64String(reader["photo"] as byte[]) : null
-                    //photo = (byte[])reader["photo"],
-                });
+                    List.Add(new Image
+                    {
+                        id_person = reader.GetInt32(0),
+                        photo = reader["photo"] as byte[] != null ? Convert.ToBase64String(reader["photo"] as byte[]) : null
+                        //photo = (byte[])reader["photo"],
+                    });
+
+                }
+                catch (Exception)
+                {
+                    Console.WriteLine(reader.GetInt32(0));
+                }
+               
             }
             await reader.CloseAsync();
             return List.AsReadOnly();
