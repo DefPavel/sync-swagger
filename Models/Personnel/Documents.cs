@@ -11,7 +11,7 @@ namespace sync_swagger.Models.Personnel
         [JsonPropertyName("name")]
         public string Name { get; set; }
 
-        [JsonPropertyName("url")]
-        public string Document { get; set; }
+        [JsonPropertyName("document")]
+        public byte[] Document { get; set; }
     }
 }

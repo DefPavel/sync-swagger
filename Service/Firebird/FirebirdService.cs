@@ -215,7 +215,7 @@ namespace sync_swagger.Service.Firebird
                         Name = reader.GetString(1),
                         LastName = reader.GetString(2),
                         Gender = reader.GetString(3) == "Жен" ? "female" : "male",
-                        DateBirthay = reader.GetDateTime(4).ToString("yyyy-MM-dd"),
+                        DateBirthay = reader["date_birth"] != DBNull.Value ? reader.GetDateTime(4).ToString("yyyy-MM-dd") : "1970-01-01",
                         Code = reader["IDENT_CODE"] != DBNull.Value ? reader.GetString(5) : "Не указано",
                         //photo = reader["photo"] as byte[] != null ? Convert.ToBase64String(reader["photo"] as byte[]) : null,
                         PhoneUA = reader.GetString(6),
@@ -580,7 +580,7 @@ namespace sync_swagger.Service.Firebird
                         DateStartContract = reader["date_kontr_nach"] != DBNull.Value ? reader.GetDateTime(12).ToString("yyyy-MM-dd") : null,
                         DateEndContract = reader["date_kontr_kon"] != DBNull.Value ? reader.GetDateTime(13).ToString("yyyy-MM-dd") : null,
                         DateDrop = reader["dat_drop"] != DBNull.Value ? reader.GetDateTime(14).ToString("yyyy-MM-dd") : null,
-                        PositionDrop = reader.GetString(15),
+                        PositionDrop = reader["dolj_uvoln"] != DBNull.Value ? reader.GetString(15) : null,
 
                     });
                 }
@@ -641,7 +641,7 @@ namespace sync_swagger.Service.Firebird
         {
             List<Documents> list = new();
             //string path = "D:\\documents\\";
-            string sql = "select distinct s.id, td.name,  sdd.doc , sdd.name " +
+            string sql = $"select distinct s.id, td.name,  sdd.doc , sdd.name " +
                 " from sotr s  " +
                 " inner join sotr_doljn sd on s.id = sd.sotr_id " +
                 " inner join sotr_document sdd on s.id = sdd.sotr_id " +
@@ -656,19 +656,22 @@ namespace sync_swagger.Service.Firebird
             FbDataReader reader = await command.ExecuteReaderAsync();
             if (reader.HasRows)
             {
-
+                int i = 0;
                 while (await reader.ReadAsync())
                 {
-                    int random = Randoms();
+                    
+                    //int random = Randoms();
 
                     list.Add(new Documents
                     {
                         IdPers = reader.GetInt32(0),
                         Type = reader.GetString(1),
-                        Document = $"/Pers/documents/doc_{random}.jpg",
+                        Document = reader["doc"] != DBNull.Value ? reader["doc"] as byte[] : null,
                         Name = reader.GetString(3),
 
                     });
+                    await Task.Delay(100);
+                    Console.WriteLine(i++);
                     /* if(reader["doc"] != DBNull.Value)
                      {
                          using FileStream imageFile = new($"{path}doc_{random}.jpg", FileMode.Create);
