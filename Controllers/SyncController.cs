@@ -3,7 +3,6 @@ using Microsoft.Extensions.Logging;
 using sync_swagger.Models.Personnel;
 using sync_swagger.Service.Api;
 using sync_swagger.Service.Firebird;
-using System.Net.Http;
 using System.Threading.Tasks;
 
 namespace sync_swagger.Controllers
@@ -11,8 +10,7 @@ namespace sync_swagger.Controllers
     [ApiController]
     public class SyncController
     {
-        private readonly HttpClient _httpClient = new();
-
+        private readonly string _hosting = "http://localhost:8080";
         private readonly ILogger<SyncController> _logger;
         public SyncController(ILogger<SyncController> logger)
         {
@@ -24,7 +22,7 @@ namespace sync_swagger.Controllers
         [HttpPost]
         public async Task<ActionResult<GlobalArray>> DepartmentAndPosition(string token)
         {
-            ApiService api = new(_httpClient);
+            using ClientApi client = new(_hosting);
             GlobalArray globalArray = new();
             //Получить данные отделов из Firebird
             globalArray.ArrayDepartments = await FirebirdService.GetDepartment();
@@ -34,7 +32,7 @@ namespace sync_swagger.Controllers
                 return new BadRequestResult();
             }
             // Отправить массив данных на ApiServer для синхронизации
-            return await api.PostArrayByTokenAsync(@"/pers/tree/sync", token, globalArray);
+            return await client.PostAsyncByToken<GlobalArray>(@"api/pers/tree/sync", token, globalArray);
         }
 
         // Синхонизация из Firebird в Postgres (Все Сотрудники)
@@ -42,17 +40,29 @@ namespace sync_swagger.Controllers
         [HttpPost]
         public async Task<ActionResult<GlobalArray>> Persons(string token)
         {
-            ApiService api = new(_httpClient);
+            using ClientApi client = new(_hosting);
             GlobalArray globalArray = new();
-            //Получить данные отделов из Firebird
-            globalArray.ArrayPersons = await FirebirdService.GetPersonsAsync();
-            // Если запрос пустой
-            if (globalArray.ArrayPersons == null)
+
+            int countPerson = await FirebirdService.GetCountPersons();
+            int skip = 0;
+            
+            for (int i = 0; i <= countPerson; i++)
             {
-                return new BadRequestResult();
+                globalArray.ArrayPersons = await FirebirdService.GetPersonsAsync(250, skip);
+                // Если запрос пустой
+                if (globalArray.ArrayPersons.Count > 0)
+                {
+                    // Отправить массив данных на ApiServer для синхронизации
+                    await client.PostAsyncByToken<GlobalArray>(@"api/pers/person/sync", token, globalArray);
+                    skip += 250;
+                }
+                else
+                {
+                    return new OkObjectResult(globalArray);
+                }
+                
             }
-            // Отправить массив данных на ApiServer для синхронизации
-            return await api.PostArrayByTokenAsync(@"/pers/person/sync", token, globalArray);
+            return new OkObjectResult(globalArray);
         }
 
         // Синхонизация из Firebird в Postgres (Все Отпуска)
@@ -60,7 +70,8 @@ namespace sync_swagger.Controllers
         [HttpPost]
         public async Task<ActionResult<GlobalArray>> Vacations(string token)
         {
-            ApiService api = new(_httpClient);
+            using ClientApi client = new(_hosting);
+            
             GlobalArray globalArray = new();
             //Получить данные отделов из Firebird
             globalArray.ArrayVacation = await FirebirdService.GetVacations();
@@ -70,7 +81,7 @@ namespace sync_swagger.Controllers
                 return new BadRequestResult();
             }
             // Отправить массив данных на ApiServer для синхронизации
-            return await api.PostArrayByTokenAsync(@"/pers/vacation/sync", token, globalArray);
+            return await client.PostAsyncByToken<GlobalArray>(@"api/pers/vacation/sync", token, globalArray);
         }
 
         // Синхонизация из Firebird в Postgres (Все Награждения)
@@ -78,7 +89,7 @@ namespace sync_swagger.Controllers
         [HttpPost]
         public async Task<ActionResult<GlobalArray>> Rewardings(string token)
         {
-            ApiService api = new(_httpClient);
+            using ClientApi client = new(_hosting);
             GlobalArray globalArray = new();
             //Получить данные отделов из Firebird
             globalArray.ArrayRewarding = await FirebirdService.GetRewarding();
@@ -88,14 +99,14 @@ namespace sync_swagger.Controllers
                 return new BadRequestResult();
             }
             // Отправить массив данных на ApiServer для синхронизации
-            return await api.PostArrayByTokenAsync(@"/pers/rewarding/sync", token, globalArray);
+            return await client.PostAsyncByToken<GlobalArray>(@"api/pers/rewarding/sync", token, globalArray);
         }
 
         [Route("[controller]/[action]")]
         [HttpPost]
         public async Task<ActionResult<GlobalArray>> Qualifications(string token)
         {
-            ApiService api = new(_httpClient);
+            using ClientApi client = new(_hosting);
             GlobalArray globalArray = new();
             //Получить данные отделов из Firebird
             globalArray.ArrayQualification = await FirebirdService.GetQualification();
@@ -105,92 +116,77 @@ namespace sync_swagger.Controllers
                 return new BadRequestResult();
             }
             // Отправить массив данных на ApiServer для синхронизации
-            return await api.PostArrayByTokenAsync(@"/pers/qualification/sync", token, globalArray);
+            return await client.PostAsyncByToken<GlobalArray>(@"api/pers/qualification/sync", token, globalArray);
         }
 
         [Route("[controller]/[action]")]
         [HttpPost]
         public async Task<ActionResult<GlobalArray>> AcademicTitles(string token)
         {
-            ApiService api = new(_httpClient);
+            using ClientApi client = new(_hosting);
             GlobalArray globalArray = new();
-            //Получить данные отделов из Firebird
             globalArray.ArrayAcademicTitle = await FirebirdService.GetUchZvanieList();
-            // Если запрос пустой
             if (globalArray.ArrayAcademicTitle == null)
             {
                 return new BadRequestResult();
             }
-            // Отправить массив данных на ApiServer для синхронизации
-            return await api.PostArrayByTokenAsync(@"/pers/academicTitle/sync", token, globalArray);
+            return await client.PostAsyncByToken<GlobalArray>(@"api/pers/academicTitle/sync", token, globalArray);
         }
 
         [Route("[controller]/[action]")]
         [HttpPost]
         public async Task<ActionResult<GlobalArray>> ScientificDegrees(string token)
         {
-            ApiService api = new(_httpClient);
+            using ClientApi client = new(_hosting);
             GlobalArray globalArray = new();
-            //Получить данные отделов из Firebird
             globalArray.ArrayDegrees = await FirebirdService.GetScientificDegrees();
-            // Если запрос пустой
             if (globalArray.ArrayDegrees == null)
             {
                 return new BadRequestResult();
             }
-            // Отправить массив данных на ApiServer для синхронизации
-            return await api.PostArrayByTokenAsync(@"/pers/scientific/sync", token, globalArray);
+            return await client.PostAsyncByToken<GlobalArray>(@"api/pers/scientific/sync", token, globalArray);
         }
 
         [Route("[controller]/[action]")]
         [HttpPost]
         public async Task<ActionResult<GlobalArray>> Moves(string token)
         {
-            ApiService api = new(_httpClient);
+            using ClientApi client = new(_hosting);
             GlobalArray globalArray = new();
-            //Получить данные отделов из Firebird
             globalArray.ArrayMove = await FirebirdService.GetMovesAsync();
-            // Если запрос пустой
             if (globalArray.ArrayMove == null)
             {
                 return new BadRequestResult();
             }
-            // Отправить массив данных на ApiServer для синхронизации
-            return await api.PostArrayByTokenAsync(@"/pers/relocation/sync", token, globalArray);
+            return await client.PostAsyncByToken<GlobalArray>(@"api/pers/relocation/sync", token, globalArray);
         }
 
         [Route("[controller]/[action]")]
         [HttpPost]
         public async Task<ActionResult<GlobalArray>> Avatars(string token)
         {
-            ApiService api = new(_httpClient);
+            using ClientApi client = new(_hosting);
             GlobalArray globalArray = new();
-            //Получить данные отделов из Firebird
             globalArray.ArrayImage = await FirebirdService.GetPhoto();
-            // Если запрос пустой
             if (globalArray.ArrayImage == null)
             {
                 return new BadRequestResult();
             }
-            // Отправить массив данных на ApiServer для синхронизации
-            return await api.PostArrayByTokenAsync(@"/pers/person/sync/image", token, globalArray);
+            return await client.PostAsyncByToken<GlobalArray>(@"api/pers/person/sync/image", token, globalArray);
         }
 
         [Route("[controller]/[action]")]
         [HttpPost]
         public async Task<ActionResult<GlobalArray>> Documents(string token)
         {
-            ApiService api = new(_httpClient);
+            using ClientApi client = new(_hosting);
             GlobalArray globalArray = new();
-            //Получить данные отделов из Firebird
             globalArray.ArrayDocuments = await FirebirdService.GetDocumentsAsync();
-            // Если запрос пустой
             if (globalArray.ArrayDocuments == null)
             {
                 return new BadRequestResult();
             }
-            // Отправить массив данных на ApiServer для синхронизации
-            return await api.PostArrayByTokenAsync(@"/pers/document/sync", token, globalArray);
+            return await client.PostAsyncByToken<GlobalArray>(@"api/pers/document/sync", token, globalArray);
         }
 
     }

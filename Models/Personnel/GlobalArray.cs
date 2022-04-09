@@ -5,24 +5,24 @@ namespace sync_swagger.Models.Personnel
     public class GlobalArray : ResponceSync
     {
         // Синхронизация для отделов и должностей
-        public IEnumerable<Department> ArrayDepartments { get; set; }
+        public IList<Department> ArrayDepartments { get; set; }
         // Основная информация о человеке 
-        public IEnumerable<Persons> ArrayPersons { get; set; }
+        public IList<Persons> ArrayPersons { get; set; }
         // Информация об отпусках
-        public IEnumerable<Vacations> ArrayVacation { get; set; }
+        public IList<Vacations> ArrayVacation { get; set; }
         // Информация о награждениях
-        public IEnumerable<Rewarding> ArrayRewarding { get; set; }
+        public IList<Rewarding> ArrayRewarding { get; set; }
         // Парсер сканов документов
-        public IEnumerable<Documents> ArrayDocuments { get; set; }
+        public IList<Documents> ArrayDocuments { get; set; }
         // Повыщение квалификации
-        public IEnumerable<Qualification> ArrayQualification { get; set; }
+        public IList<Qualification> ArrayQualification { get; set; }
         // Ученное звание
-        public IEnumerable<UchZvanie> ArrayAcademicTitle { get; set; }
+        public IList<UchZvanie> ArrayAcademicTitle { get; set; }
         // Служебные перемещения
-        public IEnumerable<Move> ArrayMove { get; set; }
+        public IList<Move> ArrayMove { get; set; }
         // Научная степень
-        public IEnumerable<ScientificDegree> ArrayDegrees { get; set; }
+        public IList<ScientificDegree> ArrayDegrees { get; set; }
         // Парсер фотографий 3x4
-        public IEnumerable<Image> ArrayImage { get; set; }
+        public IList<Image> ArrayImage { get; set; }
     }
 }

@@ -13,29 +13,32 @@ namespace sync_swagger.Controllers
     [Route("[controller]")]
     public class AuthController : ControllerBase
     {
-        private readonly HttpClient _httpClient = new();
-
         private readonly ILogger<AuthController> _logger;
-
         public AuthController(ILogger<AuthController> logger)
         {
             _logger = logger;
         }
-
         [HttpPost]
         public async Task<User> Auth(string username = "1978", string password = "root")
-        {         
-            ApiService api = new(_httpClient);
-
-            User user = new()
+        {
+            try
             {
-                UserName = username,
-                Password = CustomAes256.Encrypt(password, "8UHjPgXZzXDgkhqV2QCnooyJyxUzfJrO"),
-                IdModules = ModulesProject.Personel,
+                using ClientApi client = new("http://localhost:8080");
 
-            };
+                User user = new()
+                {
+                    UserName = username,
+                    Password = CustomAes256.Encrypt(password, "8UHjPgXZzXDgkhqV2QCnooyJyxUzfJrO"),
+                    IdModules = ModulesProject.Personel,
 
-            return await api.PostAsync(@"/auth", user);
+                };
+                return await client.PostAsync<User>("api/auth", user);
+
+            }
+            catch (HttpRequestException ex)
+            {
+                throw ex;
+            }
         }
 
     }

@@ -44,7 +44,7 @@ namespace sync_swagger.Service.Firebird
         #endregion
 
         #region Список должностей на отдел
-        public static async Task<IEnumerable<Position>> GetPositionsAsync(int idDep)
+        public static async Task<IList<Position>> GetPositionsAsync(int idDep)
         {
             List<Position> List = new();
             string sql = " select " +
@@ -66,7 +66,7 @@ namespace sync_swagger.Service.Firebird
             connection.Open();
             await using FbTransaction transaction = await connection.BeginTransactionAsync();
             await using FbCommand command = new(sql, connection, transaction);
-            FbDataReader reader = await command.ExecuteReaderAsync();
+            await using FbDataReader reader = await command.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
                 List.Add(new Position
@@ -85,8 +85,6 @@ namespace sync_swagger.Service.Firebird
 
                 });
             }
-            await reader.CloseAsync();
-
             return List.AsReadOnly();
         }
         #endregion
@@ -101,7 +99,7 @@ namespace sync_swagger.Service.Firebird
             connection.Open();
             await using FbTransaction transaction = await connection.BeginTransactionAsync();
             await using FbCommand command = new(sql, connection, transaction);
-            FbDataReader reader = await command.ExecuteReaderAsync();
+            await using FbDataReader reader = await command.ExecuteReaderAsync();
 
             while (await reader.ReadAsync())
             {
@@ -138,11 +136,32 @@ namespace sync_swagger.Service.Firebird
         #endregion
 
         #region Основная информация по сотрудникам
+        public static async Task<int> GetCountPersons()
+        {
+            string sql = "select" +
+                         " count (distinct s.id) " +
+                         "from sotr s " +
+                         "inner join sotr_doljn sd on s.id = sd.sotr_id " +
+                         " where sd.dolj_id <> 0 ";
 
-        public static async Task<IEnumerable<Persons>> GetPersonsAsync()
+            await using FbConnection connection = new(StringConnection);
+            connection.Open();
+            await using FbTransaction transaction = await connection.BeginTransactionAsync();
+            await using FbCommand command = new(sql, connection, transaction);
+            await using FbDataReader reader = await command.ExecuteReaderAsync();
+            if (reader.Read())
+            {
+                return reader.GetInt32(0);
+            }
+            return 0;
+            
+        }
+        public static async Task<IList<Persons>> GetPersonsAsync(int fisrst = 100 , int skip = 0)
         {
             List<Persons> List = new();
             string sql = "select" +
+                        $" first {fisrst} " +
+                        $" skip {skip}" +
                         " distinct " +
                         "s.famil ," + //0
                         "s.name ," +//1
@@ -182,7 +201,7 @@ namespace sync_swagger.Service.Firebird
             connection.Open();
             await using FbTransaction transaction = await connection.BeginTransactionAsync();
             await using FbCommand command = new(sql, connection, transaction);
-            FbDataReader reader = await command.ExecuteReaderAsync();
+            await using FbDataReader reader = await command.ExecuteReaderAsync();
             string TypePassport = string.Empty;
             if (reader.HasRows)
             {
@@ -253,11 +272,10 @@ namespace sync_swagger.Service.Firebird
                     });
                 }
             }
-            await reader.CloseAsync();
             return List.AsReadOnly();
         }
 
-        private static async Task<IEnumerable<ChlenAcademic>> ChlenAcademicsAsync(int id_pers)
+        private static async Task<IList<ChlenAcademic>> ChlenAcademicsAsync(int id_pers)
         {
             List<ChlenAcademic> List = new();
 
@@ -268,7 +286,7 @@ namespace sync_swagger.Service.Firebird
             connection.Open();
             await using FbTransaction transaction = await connection.BeginTransactionAsync();
             await using FbCommand command = new(sql, connection, transaction);
-            FbDataReader reader = await command.ExecuteReaderAsync();
+            await using FbDataReader reader = await command.ExecuteReaderAsync();
 
             if (reader.HasRows)
             {
@@ -284,11 +302,10 @@ namespace sync_swagger.Service.Firebird
                 }
 
             }
-            await reader.CloseAsync();
             return List;
         }
 
-        private static async Task<IEnumerable<Medical>> GetMedicals(int id_pers)
+        private static async Task<IList<Medical>> GetMedicals(int id_pers)
         {
             List<Medical> List = new();
 
@@ -299,7 +316,7 @@ namespace sync_swagger.Service.Firebird
             connection.Open();
             await using FbTransaction transaction = await connection.BeginTransactionAsync();
             await using FbCommand command = new(sql, connection, transaction);
-            FbDataReader reader = await command.ExecuteReaderAsync();
+            await using FbDataReader reader = await command.ExecuteReaderAsync();
 
             if (reader.HasRows)
             {
@@ -315,11 +332,10 @@ namespace sync_swagger.Service.Firebird
                 }
 
             }
-            await reader.CloseAsync();
             return List;
         }
 
-        private static async Task<IEnumerable<HistoryBook>> GetHistoryBooksAsync(int IdPerson)
+        private static async Task<IList<HistoryBook>> GetHistoryBooksAsync(int IdPerson)
         {
             List<HistoryBook> List = new();
             string sql = "select tk.n_zap , tk.date_zap , tk.info , tk.staj_ob ,tk.staj_ped, tk.staj_nauch , tk.staj_lgpu , tk.staj_bibl, tk.staj_muzei, tk.staj_med, tk.prikaz_name "
@@ -330,7 +346,7 @@ namespace sync_swagger.Service.Firebird
             connection.Open();
             await using FbTransaction transaction = await connection.BeginTransactionAsync();
             await using FbCommand command = new(sql, connection, transaction);
-            FbDataReader reader = await command.ExecuteReaderAsync();
+            await using FbDataReader reader = await command.ExecuteReaderAsync();
             int record = 1;
             if (reader.HasRows)
             {
@@ -355,11 +371,10 @@ namespace sync_swagger.Service.Firebird
                 }
 
             }
-            await reader.CloseAsync();
             return List.AsReadOnly();
         }
 
-        private static async Task<IEnumerable<Education>> GetEducationsAsync(int IdPerson)
+        private static async Task<IList<Education>> GetEducationsAsync(int IdPerson)
         {
             List<Education> List = new();
             string sql = "select distinct ed.uch_zav , ed.typ_obr , ed.spec , ed.kvalification , ed.date_vidachy ,ed.n_diploma , ed.is_osn" +
@@ -370,7 +385,7 @@ namespace sync_swagger.Service.Firebird
             connection.Open();
             await using FbTransaction transaction = await connection.BeginTransactionAsync();
             await using FbCommand command = new(sql, connection, transaction);
-            FbDataReader reader = await command.ExecuteReaderAsync();
+            await using FbDataReader reader = await command.ExecuteReaderAsync();
             if (reader.HasRows)
             {
                 while (await reader.ReadAsync())
@@ -387,11 +402,10 @@ namespace sync_swagger.Service.Firebird
                     });
                 }
             }
-            await reader.CloseAsync();
             return List.AsReadOnly();
         }
 
-        private static async Task<IEnumerable<Invalids>> GetInvalids(int IdPerson)
+        private static async Task<IList<Invalids>> GetInvalids(int IdPerson)
         {
             List<Invalids> List = new();
             string sql = "select NUM_DOC , DATE_BEGIN , DATE_END , FOR_DEATH , GROUPE " +
@@ -402,7 +416,7 @@ namespace sync_swagger.Service.Firebird
             connection.Open();
             await using FbTransaction transaction = await connection.BeginTransactionAsync();
             await using FbCommand command = new(sql, connection, transaction);
-            FbDataReader reader = await command.ExecuteReaderAsync();
+            await using FbDataReader reader = await command.ExecuteReaderAsync();
             if (reader.HasRows)
             {
                 while (await reader.ReadAsync())
@@ -418,12 +432,10 @@ namespace sync_swagger.Service.Firebird
                     });
                 }
             }
-
-            await reader.CloseAsync();
             return List.AsReadOnly();
         }
 
-        private static async Task<IEnumerable<Pensioners>> GetPensionerAsync(int IdPerson)
+        private static async Task<IList<Pensioners>> GetPensionerAsync(int IdPerson)
         {
             List<Pensioners> List = new();
             string sql = "select num_doc , date_doc , PRICINA_VYHODA " +
@@ -434,7 +446,7 @@ namespace sync_swagger.Service.Firebird
             connection.Open();
             await using FbTransaction transaction = await connection.BeginTransactionAsync();
             await using FbCommand command = new(sql, connection, transaction);
-            FbDataReader reader = await command.ExecuteReaderAsync();
+            await using FbDataReader reader = await command.ExecuteReaderAsync();
             if (reader.HasRows)
             {
                 while (await reader.ReadAsync())
@@ -447,12 +459,10 @@ namespace sync_swagger.Service.Firebird
                     });
                 }
             }
-
-            await reader.CloseAsync();
             return List.AsReadOnly();
         }
 
-        private static async Task<IEnumerable<Family>> GetFamiliesAsync(int idPers)
+        private static async Task<IList<Family>> GetFamiliesAsync(int idPers)
         {
             List<Family> List = new();
             string sql = "select f.typ , f.FIO , f.prim from FAMILY f where f.sotr_id = " + idPers;
@@ -460,7 +470,7 @@ namespace sync_swagger.Service.Firebird
             connection.Open();
             await using FbTransaction transaction = await connection.BeginTransactionAsync();
             await using FbCommand command = new(sql, connection, transaction);
-            FbDataReader reader = await command.ExecuteReaderAsync();
+            await using FbDataReader reader = await command.ExecuteReaderAsync();
             if (reader.HasRows)
             {
                 while (await reader.ReadAsync())
@@ -473,12 +483,10 @@ namespace sync_swagger.Service.Firebird
                     });
                 }
             }
-            await reader.CloseAsync();
-
             return List.AsReadOnly();
         }
 
-        private static async Task<IEnumerable<ChangeSurname>> GetChangeSurname(int idPers)
+        private static async Task<IList<ChangeSurname>> GetChangeSurname(int idPers)
         {
             List<ChangeSurname> List = new();
             string sql = " select CF.ex_famil , P.name , P.date_crt , P.typ " +
@@ -491,7 +499,7 @@ namespace sync_swagger.Service.Firebird
             connection.Open();
             await using FbTransaction transaction = await connection.BeginTransactionAsync();
             await using FbCommand command = new(sql, connection, transaction);
-            FbDataReader reader = await command.ExecuteReaderAsync();
+            await using FbDataReader reader = await command.ExecuteReaderAsync();
             if (reader.HasRows)
             {
                 while (await reader.ReadAsync())
@@ -509,12 +517,10 @@ namespace sync_swagger.Service.Firebird
                     });
                 }
             }
-            await reader.CloseAsync();
-
             return List.AsReadOnly();
         }
 
-        private static async Task<IEnumerable<PersonPosition>> GetPersonPosition(int IdPerson)
+        private static async Task<IList<PersonPosition>> GetPersonPosition(int IdPerson)
         {
             List<PersonPosition> List = new();
             string sql =
@@ -548,7 +554,7 @@ namespace sync_swagger.Service.Firebird
             connection.Open();
             await using FbTransaction transaction = await connection.BeginTransactionAsync();
             await using FbCommand command = new(sql, connection, transaction);
-            FbDataReader reader = await command.ExecuteReaderAsync();
+            await using FbDataReader reader = await command.ExecuteReaderAsync();
             if (reader.HasRows)
             {
                 while (await reader.ReadAsync())
@@ -585,8 +591,6 @@ namespace sync_swagger.Service.Firebird
                     });
                 }
             }
-
-            await reader.CloseAsync();
             return List.AsReadOnly();
         }
 
@@ -594,7 +598,7 @@ namespace sync_swagger.Service.Firebird
 
         #region Список отпусков всех сотрудников
 
-        public static async Task<IEnumerable<Vacations>> GetVacations()
+        public static async Task<IList<Vacations>> GetVacations()
         {
             List<Vacations> List = new();
             string sql = " select s.id , o.period , o.dlina ,o.ostatok, o.date_nach , o.date_kon,  p.name , p.date_crt , t.name as typ " +
@@ -609,7 +613,7 @@ namespace sync_swagger.Service.Firebird
             connection.Open();
             await using FbTransaction transaction = await connection.BeginTransactionAsync();
             await using FbCommand command = new(sql, connection, transaction);
-            FbDataReader reader = await command.ExecuteReaderAsync();
+            await using FbDataReader reader = await command.ExecuteReaderAsync();
             if (reader.HasRows)
             {
                 while (await reader.ReadAsync())
@@ -629,7 +633,6 @@ namespace sync_swagger.Service.Firebird
 
                 }
             }
-            await reader.CloseAsync();
             return List.AsReadOnly();
         }
 
@@ -637,7 +640,7 @@ namespace sync_swagger.Service.Firebird
 
         #region Список документов
 
-        public static async Task<IEnumerable<Documents>> GetDocumentsAsync()
+        public static async Task<IList<Documents>> GetDocumentsAsync()
         {
             List<Documents> list = new();
             //string path = "D:\\documents\\";
@@ -653,7 +656,7 @@ namespace sync_swagger.Service.Firebird
             connection.Open();
             await using FbTransaction transaction = await connection.BeginTransactionAsync();
             await using FbCommand command = new(sql, connection, transaction);
-            FbDataReader reader = await command.ExecuteReaderAsync();
+            await using FbDataReader reader = await command.ExecuteReaderAsync();
             if (reader.HasRows)
             {
                 int i = 0;
@@ -685,14 +688,14 @@ namespace sync_swagger.Service.Firebird
 
                 }
             }
-            await reader.CloseAsync();
+            
             return list.AsReadOnly();
         }
 
         #endregion
 
         #region Список награждений
-        public static async Task<IEnumerable<Rewarding>> GetRewarding()
+        public static async Task<IList<Rewarding>> GetRewarding()
         {
             List<Rewarding> List = new();
             string sql = " select distinct s.id , tn.name , sn.prim , p.name as order_name, p.date_crt as date_order  , sn.date_crt as date_issuing " +
@@ -707,7 +710,7 @@ namespace sync_swagger.Service.Firebird
             connection.Open();
             await using FbTransaction transaction = await connection.BeginTransactionAsync();
             await using FbCommand command = new(sql, connection, transaction);
-            FbDataReader reader = await command.ExecuteReaderAsync();
+            await using FbDataReader reader = await command.ExecuteReaderAsync();
             if (reader.HasRows)
             {
                 while (await reader.ReadAsync())
@@ -724,14 +727,13 @@ namespace sync_swagger.Service.Firebird
 
                 }
             }
-            await reader.CloseAsync();
             return List.AsReadOnly();
         }
 
         #endregion
 
         #region Повыщение квалификации
-        public static async Task<IEnumerable<Qualification>> GetQualification()
+        public static async Task<IList<Qualification>> GetQualification()
         {
             List<Qualification> list = new();
             string sql = "select distinct s.id, kv.kurs_name , kv.date_nach , kv.date_kon , kv.mesto_prohogd ,kv.n_svid , kv.date_vidachy " +
@@ -744,7 +746,7 @@ namespace sync_swagger.Service.Firebird
             connection.Open();
             await using FbTransaction transaction = await connection.BeginTransactionAsync();
             await using FbCommand command = new(sql, connection, transaction);
-            FbDataReader reader = await command.ExecuteReaderAsync();
+            await using FbDataReader reader = await command.ExecuteReaderAsync();
             if (reader.HasRows)
             {
                 while (await reader.ReadAsync())
@@ -767,7 +769,7 @@ namespace sync_swagger.Service.Firebird
         #endregion
 
         #region Ученое Звание
-        public static async Task<IEnumerable<UchZvanie>> GetUchZvanieList()
+        public static async Task<IList<UchZvanie>> GetUchZvanieList()
         {
             List<UchZvanie> List = new();
 
@@ -782,7 +784,7 @@ namespace sync_swagger.Service.Firebird
             connection.Open();
             await using FbTransaction transaction = await connection.BeginTransactionAsync();
             await using FbCommand command = new(sql, connection, transaction);
-            FbDataReader reader = await command.ExecuteReaderAsync();
+            await using FbDataReader reader = await command.ExecuteReaderAsync();
             if (reader.HasRows)
             {
                 while (await reader.ReadAsync())
@@ -799,14 +801,13 @@ namespace sync_swagger.Service.Firebird
                 }
 
             }
-            await reader.CloseAsync();
             return List.AsReadOnly();
 
         }
         #endregion
 
         #region Ученая степень
-        public static async Task<IEnumerable<ScientificDegree>> GetScientificDegrees()
+        public static async Task<IList<ScientificDegree>> GetScientificDegrees()
         {
             List<ScientificDegree> list = new();
             string sql = " select ns.sotr_id " +
@@ -832,7 +833,7 @@ namespace sync_swagger.Service.Firebird
             connection.Open();
             await using FbTransaction transaction = await connection.BeginTransactionAsync();
             await using FbCommand command = new(sql, connection, transaction);
-            FbDataReader reader = await command.ExecuteReaderAsync();
+            await using FbDataReader reader = await command.ExecuteReaderAsync();
 
             if (reader.HasRows)
             {
@@ -868,7 +869,7 @@ namespace sync_swagger.Service.Firebird
         #endregion
 
         #region Служебные перемещения
-        public static async Task<IEnumerable<Move>> GetMovesAsync()
+        public static async Task<IList<Move>> GetMovesAsync()
         {
             List<Move> List = new();
             string sql = "select distinct " +
@@ -900,7 +901,7 @@ namespace sync_swagger.Service.Firebird
             connection.Open();
             await using FbTransaction transaction = await connection.BeginTransactionAsync();
             await using FbCommand command = new(sql, connection, transaction);
-            FbDataReader reader = await command.ExecuteReaderAsync();
+            await using FbDataReader reader = await command.ExecuteReaderAsync();
             if (reader.HasRows)
             {
                 while (await reader.ReadAsync())
@@ -972,7 +973,6 @@ namespace sync_swagger.Service.Firebird
                     });
                 }
             }
-            await reader.CloseAsync();
             return List.AsReadOnly();
 
         }
@@ -980,7 +980,7 @@ namespace sync_swagger.Service.Firebird
 
         #region Генерация фотографий 3x4
 
-        public static async Task<IEnumerable<Image>> GetPhoto()
+        public static async Task<IList<Image>> GetPhoto()
         {
             List<Image> List = new();
             string sql = "select s.id, s.photo" +
@@ -993,7 +993,7 @@ namespace sync_swagger.Service.Firebird
             connection.Open();
             await using FbTransaction transaction = await connection.BeginTransactionAsync();
             await using FbCommand command = new(sql, connection, transaction);
-            FbDataReader reader = await command.ExecuteReaderAsync();
+            await using FbDataReader reader = await command.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
                 try
@@ -1012,7 +1012,6 @@ namespace sync_swagger.Service.Firebird
                 }
                
             }
-            await reader.CloseAsync();
             return List.AsReadOnly();
 
         }
