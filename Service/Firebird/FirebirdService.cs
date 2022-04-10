@@ -156,12 +156,12 @@ namespace sync_swagger.Service.Firebird
             return 0;
             
         }
-        public static async Task<IList<Persons>> GetPersonsAsync(int fisrst = 100 , int skip = 0)
+        public static async Task<IList<Persons>> GetPersonsAsync(int first = 100 , int skip = 0)
         {
             List<Persons> List = new();
             string sql = "select" +
-                        $" first {fisrst} " +
-                        $" skip {skip}" +
+                       // $" first {first} " +
+                       // $" skip {skip}" +
                         " distinct " +
                         "s.famil ," + //0
                         "s.name ," +//1
@@ -640,16 +640,38 @@ namespace sync_swagger.Service.Firebird
 
         #region Список документов
 
-        public static async Task<IList<Documents>> GetDocumentsAsync()
+        public static async Task<int> GetCountDocuments()
+        {
+            string sql = "select" +
+                        " count (distinct s.id) " +
+                        " from sotr s " +
+                        " inner join sotr_doljn sd on s.id = sd.sotr_id " +
+                        " inner join sotr_document sdd on s.id = sdd.sotr_id " +
+                        " inner join typ_sotr_doc td on sdd.typ = td.id " +
+                        " where sd.dolj_id <> 0 and sdd.name is not null ";
+
+            await using FbConnection connection = new(StringConnection);
+            connection.Open();
+            await using FbTransaction transaction = await connection.BeginTransactionAsync();
+            await using FbCommand command = new(sql, connection, transaction);
+            await using FbDataReader reader = await command.ExecuteReaderAsync();
+            if (reader.Read())
+            {
+                return reader.GetInt32(0);
+            }
+            return 0;
+
+        }
+        public static async Task<IList<Documents>> GetDocumentsAsync(int first = 100 , int skip = 0)
         {
             List<Documents> list = new();
             //string path = "D:\\documents\\";
-            string sql = $"select distinct s.id, td.name,  sdd.doc , sdd.name " +
+            string sql = $"select first {first} skip {skip} distinct s.id, td.name,  sdd.doc , sdd.name " +
                 " from sotr s  " +
                 " inner join sotr_doljn sd on s.id = sd.sotr_id " +
                 " inner join sotr_document sdd on s.id = sdd.sotr_id " +
                 " inner join typ_sotr_doc td on sdd.typ = td.id " +
-                " where sd.dolj_id <> 0 and sdd.name is not null " +
+                " where sd.dolj_id <> 0 and sdd.name is not null and sdd.doc is not null " +
                 " order by s.id desc ";
 
             await using FbConnection connection = new(StringConnection);
@@ -659,7 +681,6 @@ namespace sync_swagger.Service.Firebird
             await using FbDataReader reader = await command.ExecuteReaderAsync();
             if (reader.HasRows)
             {
-                int i = 0;
                 while (await reader.ReadAsync())
                 {
                     
@@ -673,8 +694,7 @@ namespace sync_swagger.Service.Firebird
                         Name = reader.GetString(3),
 
                     });
-                    await Task.Delay(100);
-                    Console.WriteLine(i++);
+                     await Task.Delay(100);
                     /* if(reader["doc"] != DBNull.Value)
                      {
                          using FileStream imageFile = new($"{path}doc_{random}.jpg", FileMode.Create);
@@ -979,11 +999,10 @@ namespace sync_swagger.Service.Firebird
         #endregion
 
         #region Генерация фотографий 3x4
-
-        public static async Task<IList<Image>> GetPhoto()
+        public static async Task<IList<Image>> GetPhoto(int first = 100, int skip = 0)
         {
             List<Image> List = new();
-            string sql = "select s.id, s.photo" +
+            string sql = $"select first {first} skip {skip} s.id, s.photo" +
                 " from sotr s" +
                 " inner join sotr_doljn sd on s.id = sd.sotr_id " +
                 " where s.photo is not null and sd.dolj_id <> 0" +

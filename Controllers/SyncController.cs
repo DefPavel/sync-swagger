@@ -27,12 +27,9 @@ namespace sync_swagger.Controllers
             //Получить данные отделов из Firebird
             globalArray.ArrayDepartments = await FirebirdService.GetDepartment();
             // Если запрос пустой
-            if (globalArray.ArrayDepartments == null)
-            {
-                return new BadRequestResult();
-            }
-            // Отправить массив данных на ApiServer для синхронизации
-            return await client.PostAsyncByToken<GlobalArray>(@"api/pers/tree/sync", token, globalArray);
+            return globalArray.ArrayDepartments.Count == 0
+               ? new BadRequestResult()
+               : await client.PostAsyncByToken<GlobalArray>(@"api/pers/tree/sync", token, globalArray);
         }
 
         // Синхонизация из Firebird в Postgres (Все Сотрудники)
@@ -41,9 +38,16 @@ namespace sync_swagger.Controllers
         public async Task<ActionResult<GlobalArray>> Persons(string token)
         {
             using ClientApi client = new(_hosting);
-            GlobalArray globalArray = new();
 
-            int countPerson = await FirebirdService.GetCountPersons();
+            GlobalArray globalArray = new();
+            //Получить данные отделов из Firebird
+            globalArray.ArrayPersons = await FirebirdService.GetPersonsAsync();
+            // Если запрос пустой
+            return globalArray.ArrayPersons.Count == 0
+                ? new BadRequestResult()
+                : await client.PostAsyncByToken<GlobalArray>(@"api/pers/person/sync", token, globalArray);
+
+            /*int countPerson = await FirebirdService.GetCountPersons();
             int skip = 0;
             
             for (int i = 0; i <= countPerson; i++)
@@ -58,11 +62,12 @@ namespace sync_swagger.Controllers
                 }
                 else
                 {
-                    return new OkObjectResult(globalArray);
+                    return new OkResult();
                 }
-                
             }
-            return new OkObjectResult(globalArray);
+            return new OkResult();
+            */
+
         }
 
         // Синхонизация из Firebird в Postgres (Все Отпуска)
@@ -76,12 +81,9 @@ namespace sync_swagger.Controllers
             //Получить данные отделов из Firebird
             globalArray.ArrayVacation = await FirebirdService.GetVacations();
             // Если запрос пустой
-            if (globalArray.ArrayVacation == null)
-            {
-                return new BadRequestResult();
-            }
-            // Отправить массив данных на ApiServer для синхронизации
-            return await client.PostAsyncByToken<GlobalArray>(@"api/pers/vacation/sync", token, globalArray);
+            return globalArray.ArrayVacation.Count == 0
+                ? new BadRequestResult()
+                : await client.PostAsyncByToken<GlobalArray>(@"api/pers/vacation/sync", token, globalArray);
         }
 
         // Синхонизация из Firebird в Postgres (Все Награждения)
@@ -94,12 +96,9 @@ namespace sync_swagger.Controllers
             //Получить данные отделов из Firebird
             globalArray.ArrayRewarding = await FirebirdService.GetRewarding();
             // Если запрос пустой
-            if (globalArray.ArrayRewarding == null)
-            {
-                return new BadRequestResult();
-            }
-            // Отправить массив данных на ApiServer для синхронизации
-            return await client.PostAsyncByToken<GlobalArray>(@"api/pers/rewarding/sync", token, globalArray);
+            return globalArray.ArrayRewarding.Count == 0
+                ? new BadRequestResult()
+                : await client.PostAsyncByToken<GlobalArray>(@"api/pers/rewarding/sync", token, globalArray);
         }
 
         [Route("[controller]/[action]")]
@@ -110,13 +109,11 @@ namespace sync_swagger.Controllers
             GlobalArray globalArray = new();
             //Получить данные отделов из Firebird
             globalArray.ArrayQualification = await FirebirdService.GetQualification();
-            // Если запрос пустой
-            if (globalArray.ArrayQualification == null)
-            {
-                return new BadRequestResult();
-            }
-            // Отправить массив данных на ApiServer для синхронизации
-            return await client.PostAsyncByToken<GlobalArray>(@"api/pers/qualification/sync", token, globalArray);
+
+            return globalArray.ArrayQualification.Count == 0
+                ? new BadRequestResult()
+                : await client.PostAsyncByToken<GlobalArray>(@"api/pers/qualification/sync", token, globalArray);
+          
         }
 
         [Route("[controller]/[action]")]
@@ -126,11 +123,9 @@ namespace sync_swagger.Controllers
             using ClientApi client = new(_hosting);
             GlobalArray globalArray = new();
             globalArray.ArrayAcademicTitle = await FirebirdService.GetUchZvanieList();
-            if (globalArray.ArrayAcademicTitle == null)
-            {
-                return new BadRequestResult();
-            }
-            return await client.PostAsyncByToken<GlobalArray>(@"api/pers/academicTitle/sync", token, globalArray);
+            return globalArray.ArrayAcademicTitle.Count == 0
+                ? new BadRequestResult()
+                : await client.PostAsyncByToken<GlobalArray>(@"api/pers/academicTitle/sync", token, globalArray);
         }
 
         [Route("[controller]/[action]")]
@@ -140,11 +135,9 @@ namespace sync_swagger.Controllers
             using ClientApi client = new(_hosting);
             GlobalArray globalArray = new();
             globalArray.ArrayDegrees = await FirebirdService.GetScientificDegrees();
-            if (globalArray.ArrayDegrees == null)
-            {
-                return new BadRequestResult();
-            }
-            return await client.PostAsyncByToken<GlobalArray>(@"api/pers/scientific/sync", token, globalArray);
+            return globalArray.ArrayDegrees.Count == 0
+                ? new BadRequestResult()
+                : await client.PostAsyncByToken<GlobalArray>(@"api/pers/scientific/sync", token, globalArray);
         }
 
         [Route("[controller]/[action]")]
@@ -154,11 +147,10 @@ namespace sync_swagger.Controllers
             using ClientApi client = new(_hosting);
             GlobalArray globalArray = new();
             globalArray.ArrayMove = await FirebirdService.GetMovesAsync();
-            if (globalArray.ArrayMove == null)
-            {
-                return new BadRequestResult();
-            }
-            return await client.PostAsyncByToken<GlobalArray>(@"api/pers/relocation/sync", token, globalArray);
+
+            return globalArray.ArrayMove.Count == 0
+                ? new BadRequestResult()
+                : await client.PostAsyncByToken<GlobalArray>(@"api/pers/relocation/sync", token, globalArray);
         }
 
         [Route("[controller]/[action]")]
@@ -166,13 +158,24 @@ namespace sync_swagger.Controllers
         public async Task<ActionResult<GlobalArray>> Avatars(string token)
         {
             using ClientApi client = new(_hosting);
+            int countPerson = await FirebirdService.GetCountPersons();
+            int skip = 0;
             GlobalArray globalArray = new();
-            globalArray.ArrayImage = await FirebirdService.GetPhoto();
-            if (globalArray.ArrayImage == null)
+            for (int i = 0; i < countPerson; i++)
             {
-                return new BadRequestResult();
+                globalArray.ArrayImage = await FirebirdService.GetPhoto(100, skip);
+                if (globalArray.ArrayImage.Count > 0)
+                {
+                    // Отправить массив данных на ApiServer для синхронизации
+                    await client.PostAsyncByToken<GlobalArray>(@"api/pers/person/sync/image", token, globalArray);
+                    skip += 100;
+                }
+                else
+                {
+                    return new OkResult();
+                }
             }
-            return await client.PostAsyncByToken<GlobalArray>(@"api/pers/person/sync/image", token, globalArray);
+            return new OkResult();
         }
 
         [Route("[controller]/[action]")]
@@ -181,12 +184,24 @@ namespace sync_swagger.Controllers
         {
             using ClientApi client = new(_hosting);
             GlobalArray globalArray = new();
-            globalArray.ArrayDocuments = await FirebirdService.GetDocumentsAsync();
-            if (globalArray.ArrayDocuments == null)
+            int countDocuments = await FirebirdService.GetCountDocuments();
+            int skip = 0;
+            
+            for (int i = 0; i < countDocuments; i++)
             {
-                return new BadRequestResult();
+                globalArray.ArrayDocuments = await FirebirdService.GetDocumentsAsync(100, skip);
+
+                if (globalArray.ArrayDocuments.Count > 0)
+                {
+                    await client.PostAsyncByToken<GlobalArray>(@"api/pers/document/sync", token, globalArray);
+                    skip += 100;
+                }
+                else
+                {
+                    return new OkResult();
+                }
             }
-            return await client.PostAsyncByToken<GlobalArray>(@"api/pers/document/sync", token, globalArray);
+            return new OkResult();
         }
 
     }
