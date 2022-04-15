@@ -607,7 +607,7 @@ namespace sync_swagger.Service.Firebird
                 " inner join typ_otpusk t on o.typ_nick = t.nick " +
                 " inner join prikaz p on o.prikaz_id = p.id " +
                 " inner join sotr_doljn sd on s.id = sd.sotr_id " +
-                " where sd.dolj_id <> 0 and s.id <> 5181" +
+                " where sd.dolj_id <> 0" +
                 " order by s.id desc";
             await using FbConnection connection = new(StringConnection);
             connection.Open();
@@ -914,7 +914,7 @@ namespace sync_swagger.Service.Firebird
                 + " inner join sotr_doljn sd on s.id = sd.sotr_id " +
                 " inner join  sotr_move sm on sm.sotr_id = s.id " +
                 " inner join prikaz p on p.id = sm.prikaz_id " +
-                "  where sd.dolj_id <> 0 and  p.date_crt is not null" +
+                "  where sd.dolj_id <> 0 and sm.date_crt is not null and p.date_crt is not null" +
                 "  order by s.id desc ";
             //and sm.id <> 1192 and sm.id <> 2321 and sm.id <> 565 and sm.sotr_id <> 1459 and sm.sotr_id <> 1839
             await using FbConnection connection = new(StringConnection);
@@ -957,7 +957,7 @@ namespace sync_swagger.Service.Firebird
                     //    Console.WriteLine($"{words[0]} {words[1]}");
 
                     string Contract = reader["typ_dog"] != DBNull.Value ? FirstUpper(reader.GetString(9)) : "Не указано";
-                    string DateCrt = reader["dcrt"] != DBNull.Value ? reader.GetDateTime(3).ToShortDateString() : "SUKA";
+                    string DateCrt = reader["dcrt"] != DBNull.Value ? reader.GetDateTime(3).ToShortDateString() : "";
 
 
                     if (reader.GetString(9) == "Постійне місце роботи")

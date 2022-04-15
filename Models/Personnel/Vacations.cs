@@ -9,7 +9,7 @@ namespace sync_swagger.Models.Personnel
         [JsonPropertyName("type")]
         public string TypeVacation { get; set; }
         [JsonPropertyName("period")]
-        public string Period { get; set; } = "Не указано";
+        public string Period { get; set; }
 
         [JsonPropertyName("length")]
         public int Length { get; set; }
