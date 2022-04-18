@@ -8,7 +8,7 @@ namespace sync_swagger.Models.Personnel
         [JsonIgnore]
         public int Id { get; set; }
 
-        [JsonPropertyName("position")]
+        [JsonPropertyName("name_position")]
         public string Name { get; set; }
 
         [JsonPropertyName("is_ped")]

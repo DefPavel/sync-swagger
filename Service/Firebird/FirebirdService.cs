@@ -43,11 +43,18 @@ namespace sync_swagger.Service.Firebird
         }
         #endregion
 
+       public static string FirstCharToUpper(this string input) => input switch
+       {
+           null => throw new ArgumentNullException(nameof(input)),
+           "" => throw new ArgumentException($"{nameof(input)} cannot be empty", nameof(input)),
+           _ => string.Concat(input[0].ToString().ToUpper(), input.AsSpan(1))
+       };
+
         #region Список должностей на отдел
         public static async Task<IList<Position>> GetPositionsAsync(int idDep)
         {
             List<Position> List = new();
-            string sql = " select " +
+            string sql = " select distinct " +
                 "D.NAME, " +
                 "D.IS_PED," +
                 "D.OKLAD_B, " +
@@ -69,9 +76,11 @@ namespace sync_swagger.Service.Firebird
             await using FbDataReader reader = await command.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
+                // Поднимаем первую букву 
+                string namePosition = FirstCharToUpper(reader.GetString(0));
                 List.Add(new Position
                 {
-                    Name = reader.GetString(0),
+                    Name = namePosition,
                     IsPed = (string)reader["IS_PED"] == "T",
                     oklad_B = reader["OKLAD_B"] != DBNull.Value ? reader.GetDecimal(2) : 0,
                     oklad_N = reader["OKLAD_NB"] != DBNull.Value ? reader.GetDecimal(3) : 0,

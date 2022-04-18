@@ -1,11 +1,13 @@
-﻿namespace sync_swagger
+﻿using System.Text.Json.Serialization;
+
+namespace sync_swagger
 {
-    public enum Grants : short
+    public class Grants
     {
-        Administrator = 1, // Грант God
-        Read = 2, // Грант просмотр, Чтение
-        Update = 3, //Грант Изменение,
-        Insert = 4, // Грант на созадния
-        Delete = 5, // Грант на удаление
+        [JsonPropertyName("id")]
+        public int Id { get; set; }
+        [JsonPropertyName("name")]
+        public string Name { get; set; } = string.Empty;
+
     }
 }
