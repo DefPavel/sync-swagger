@@ -37,7 +37,7 @@ namespace sync_swagger.Controllers
             }
             catch (HttpRequestException ex)
             {
-                throw ex;
+                throw;
             }
         }
 

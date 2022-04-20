@@ -10,7 +10,7 @@ namespace sync_swagger.Controllers
     [ApiController]
     public class SyncController
     {
-        private readonly string _hosting = "http://localhost:8080";
+        private const string Hosting = "http://localhost:8080";
         private readonly ILogger<SyncController> _logger;
         public SyncController(ILogger<SyncController> logger)
         {
@@ -22,10 +22,12 @@ namespace sync_swagger.Controllers
         [HttpPost]
         public async Task<ActionResult<GlobalArray>> DepartmentAndPosition(string token)
         {
-            using ClientApi client = new(_hosting);
-            GlobalArray globalArray = new();
-            //Получить данные отделов из Firebird
-            globalArray.ArrayDepartments = await FirebirdService.GetDepartment();
+            using ClientApi client = new(Hosting);
+            GlobalArray globalArray = new()
+            {
+                //Получить данные отделов из Firebird
+                ArrayDepartments = await FirebirdService.GetDepartment()
+            };
             // Если запрос пустой
             return globalArray.ArrayDepartments.Count == 0
                ? new BadRequestResult()
@@ -37,11 +39,13 @@ namespace sync_swagger.Controllers
         [HttpPost]
         public async Task<ActionResult<GlobalArray>> Persons(string token)
         {
-            using ClientApi client = new(_hosting);
+            using ClientApi client = new(Hosting);
 
-            GlobalArray globalArray = new();
-            //Получить данные отделов из Firebird
-            globalArray.ArrayPersons = await FirebirdService.GetPersonsAsync();
+            GlobalArray globalArray = new()
+            {
+                //Получить данные отделов из Firebird
+                ArrayPersons = await FirebirdService.GetPersonsAsync()
+            };
             // Если запрос пустой
             return globalArray.ArrayPersons.Count == 0
                 ? new BadRequestResult()
@@ -75,11 +79,13 @@ namespace sync_swagger.Controllers
         [HttpPost]
         public async Task<ActionResult<GlobalArray>> Vacations(string token)
         {
-            using ClientApi client = new(_hosting);
+            using ClientApi client = new(Hosting);
             
-            GlobalArray globalArray = new();
-            //Получить данные отделов из Firebird
-            globalArray.ArrayVacation = await FirebirdService.GetVacations();
+            GlobalArray globalArray = new()
+            {
+                //Получить данные отделов из Firebird
+                ArrayVacation = await FirebirdService.GetVacations()
+            };
             // Если запрос пустой
             return globalArray.ArrayVacation.Count == 0
                 ? new BadRequestResult()
@@ -91,10 +97,12 @@ namespace sync_swagger.Controllers
         [HttpPost]
         public async Task<ActionResult<GlobalArray>> Rewardings(string token)
         {
-            using ClientApi client = new(_hosting);
-            GlobalArray globalArray = new();
-            //Получить данные отделов из Firebird
-            globalArray.ArrayRewarding = await FirebirdService.GetRewarding();
+            using ClientApi client = new(Hosting);
+            GlobalArray globalArray = new()
+            {
+                //Получить данные отделов из Firebird
+                ArrayRewarding = await FirebirdService.GetRewarding()
+            };
             // Если запрос пустой
             return globalArray.ArrayRewarding.Count == 0
                 ? new BadRequestResult()
@@ -105,10 +113,12 @@ namespace sync_swagger.Controllers
         [HttpPost]
         public async Task<ActionResult<GlobalArray>> Qualifications(string token)
         {
-            using ClientApi client = new(_hosting);
-            GlobalArray globalArray = new();
-            //Получить данные отделов из Firebird
-            globalArray.ArrayQualification = await FirebirdService.GetQualification();
+            using ClientApi client = new(Hosting);
+            GlobalArray globalArray = new()
+            {
+                //Получить данные отделов из Firebird
+                ArrayQualification = await FirebirdService.GetQualification()
+            };
 
             return globalArray.ArrayQualification.Count == 0
                 ? new BadRequestResult()
@@ -120,7 +130,7 @@ namespace sync_swagger.Controllers
         [HttpPost]
         public async Task<ActionResult<GlobalArray>> AcademicTitles(string token)
         {
-            using ClientApi client = new(_hosting);
+            using ClientApi client = new(Hosting);
             GlobalArray globalArray = new();
             globalArray.ArrayAcademicTitle = await FirebirdService.GetUchZvanieList();
             return globalArray.ArrayAcademicTitle.Count == 0
@@ -132,9 +142,11 @@ namespace sync_swagger.Controllers
         [HttpPost]
         public async Task<ActionResult<GlobalArray>> ScientificDegrees(string token)
         {
-            using ClientApi client = new(_hosting);
-            GlobalArray globalArray = new();
-            globalArray.ArrayDegrees = await FirebirdService.GetScientificDegrees();
+            using ClientApi client = new(Hosting);
+            GlobalArray globalArray = new()
+            {
+                ArrayDegrees = await FirebirdService.GetScientificDegrees()
+            };
             return globalArray.ArrayDegrees.Count == 0
                 ? new BadRequestResult()
                 : await client.PostAsyncByToken<GlobalArray>(@"api/pers/scientific/sync", token, globalArray);
@@ -144,9 +156,11 @@ namespace sync_swagger.Controllers
         [HttpPost]
         public async Task<ActionResult<GlobalArray>> Moves(string token)
         {
-            using ClientApi client = new(_hosting);
-            GlobalArray globalArray = new();
-            globalArray.ArrayMove = await FirebirdService.GetMovesAsync();
+            using ClientApi client = new(Hosting);
+            GlobalArray globalArray = new()
+            {
+                ArrayMove = await FirebirdService.GetMovesAsync()
+            };
 
             return globalArray.ArrayMove.Count == 0
                 ? new BadRequestResult()
@@ -157,11 +171,11 @@ namespace sync_swagger.Controllers
         [HttpPost]
         public async Task<ActionResult<GlobalArray>> Avatars(string token)
         {
-            using ClientApi client = new(_hosting);
-            int countPerson = await FirebirdService.GetCountPersons();
-            int skip = 0;
+            using ClientApi client = new(Hosting);
+            var countPerson = await FirebirdService.GetCountPersons();
+            var skip = 0;
             GlobalArray globalArray = new();
-            for (int i = 0; i < countPerson; i++)
+            for (var i = 0; i < countPerson; i++)
             {
                 globalArray.ArrayImage = await FirebirdService.GetPhoto(100, skip);
                 if (globalArray.ArrayImage.Count > 0)
@@ -182,12 +196,12 @@ namespace sync_swagger.Controllers
         [HttpPost]
         public async Task<ActionResult<GlobalArray>> Documents(string token)
         {
-            using ClientApi client = new(_hosting);
+            using ClientApi client = new(Hosting);
             GlobalArray globalArray = new();
-            int countDocuments = await FirebirdService.GetCountDocuments();
-            int skip = 0;
+            var countDocuments = await FirebirdService.GetCountDocuments();
+            var skip = 0;
             
-            for (int i = 0; i < countDocuments; i++)
+            for (var i = 0; i < countDocuments; i++)
             {
                 globalArray.ArrayDocuments = await FirebirdService.GetDocumentsAsync(100, skip);
 

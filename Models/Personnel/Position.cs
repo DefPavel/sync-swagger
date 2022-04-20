@@ -14,7 +14,7 @@ namespace sync_swagger.Models.Personnel
         [JsonPropertyName("is_ped")]
         public bool IsPed { get; set; }
         [JsonPropertyName("holiday")]
-        public Int16 holidayLimit { get; set; }
+        public short holidayLimit { get; set; }
         [JsonPropertyName("oklad_budget")]
         public decimal? oklad_B { get; set; }
         [JsonPropertyName("oklad_nobudget")]
@@ -30,7 +30,7 @@ namespace sync_swagger.Models.Personnel
         public decimal? count_NB { get; set; }
 
         [JsonPropertyName("priority")]
-        public Int16 priority { get; set; }
+        public short priority { get; set; }
 
         [JsonPropertyName("name_genitive")]
         public string padeg { get; set; }

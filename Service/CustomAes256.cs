@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
@@ -9,12 +10,11 @@ namespace sync_swagger.Service
     {
         #region Конвертация из Byte в Hex String
 
-        private static string ByteArrayToString(byte[] ba)
+        private static string ByteArrayToString(IReadOnlyCollection<byte> ba)
         {
-            StringBuilder hex = new(ba.Length * 2);
-            for (int i = 0; i < ba.Length; i++)
+            StringBuilder hex = new(ba.Count * 2);
+            foreach (var b in ba)
             {
-                byte b = ba[i];
                 _ = hex.AppendFormat("{0:x2}", b);
             }
 
@@ -27,9 +27,9 @@ namespace sync_swagger.Service
 
         private static byte[] StringToByteArray(string hex)
         {
-            int numberChars = hex.Length;
-            byte[] bytes = new byte[numberChars / 2];
-            for (int i = 0; i < numberChars; i += 2)
+            var numberChars = hex.Length;
+            var bytes = new byte[numberChars / 2];
+            for (var i = 0; i < numberChars; i += 2)
             {
                 bytes[i / 2] = Convert.ToByte(hex.Substring(i, 2), 16);
             }
@@ -67,7 +67,7 @@ namespace sync_swagger.Service
                 // TransformFinalBlock - это специальная функция для преобразования последнего блока или частичного блока в потоке.
                 // Возвращает новый массив, содержащий оставшиеся преобразованные байты. Возвращается новый массив, потому что количество
                 // информация, возвращаемая в конце, может быть больше одного блока при добавлении заполнения.
-                ICryptoTransform encryptor = rijAlg.CreateEncryptor(rijAlg.Key, rijAlg.IV);
+                var encryptor = rijAlg.CreateEncryptor(rijAlg.Key, rijAlg.IV);
 
                 // Создаём поток для записи шифрования. 
                 using MemoryStream msEncrypt = new();

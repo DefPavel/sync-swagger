@@ -14,23 +14,16 @@ namespace sync_swagger
             Configuration = configuration;
         }
 
-        public IConfiguration Configuration { get; }
+        private IConfiguration Configuration { get; }
 
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            // Получить  конфиги
-            string jwt = Configuration["Jwt:SecretKey"];// Сссыкла на JWT ключ
-            string firebird = Configuration["Firebird:Connection"];// Ссылка на firebird подключение к бд
-            string api = Configuration["ApiServer:BaseUrl"]; // Ссылка на главный url сервера
+            // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ  пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
+            var jwt = Configuration["Jwt:SecretKey"];// пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ JWT пїЅпїЅпїЅпїЅ
+            var firebird = Configuration["Firebird:Connection"];// пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ firebird пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅ
+            var api = Configuration["ApiServer:BaseUrl"]; // пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ url пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 
-            GlogalSettings glogal = new() 
-            {
-                FirebirdConnection = firebird,
-                JWTSectet = jwt,
-                ServerBaseUrl = api
-                
-            };
             services.AddControllers();
             services.AddSwaggerGen(c =>
             {
