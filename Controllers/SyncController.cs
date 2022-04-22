@@ -3,6 +3,11 @@ using Microsoft.Extensions.Logging;
 using sync_swagger.Models.Personnel;
 using sync_swagger.Service.Api;
 using sync_swagger.Service.Firebird;
+using System;
+using System.IO;
+using System.Text;
+using System.Text.Encodings.Web;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace sync_swagger.Controllers
@@ -46,6 +51,17 @@ namespace sync_swagger.Controllers
                 //Получить данные отделов из Firebird
                 ArrayPersons = await FirebirdService.GetPersonsAsync()
             };
+            /*using FileStream createStream = System.IO.File.Create(@"students.json");
+
+            // Сериализация в UTF-8
+            JsonSerializerOptions options = new()
+            {
+                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+                WriteIndented = true
+            };
+            await JsonSerializer.SerializeAsync(createStream, globalArray, options);
+            */
+       
             // Если запрос пустой
             return globalArray.ArrayPersons.Count == 0
                 ? new BadRequestResult()

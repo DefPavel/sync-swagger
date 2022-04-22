@@ -20,32 +20,20 @@ namespace sync_swagger.Service.Firebird
         #region Список должностей на отдел
         public static async Task<IList<Position>> GetPositionsAsync(int idDep)
         {
-            List<Position> List = new();
-            string sql = " select " +
-                "D.NAME, " +
-                "D.IS_PED," +
-                "D.OKLAD_B, " +
-                "D.OKLAD_NB," +
-                "D.OTPUSK," +
-                "D.KOLVO_B," +
-                "D.KOLVO_NB," +
-                "D.FREE_B," +
-                "D.FREE_NB," +
-                "D.PRIORITI_DOLJ," +
-                "D.NAME_ROD " +
-
-                " from DOLJNOST D where D.OTDEL_ID = " + idDep;
+            List<Position> list = new();
+            var sql =
+                $" select distinct (D.NAME), D.IS_PED,D.OKLAD_B, D.OKLAD_NB,D.OTPUSK,D.KOLVO_B,D.KOLVO_NB,D.FREE_B,D.FREE_NB,D.PRIORITI_DOLJ,D.NAME_ROD  from DOLJNOST D where D.OTDEL_ID = {idDep}";
 
             await using FbConnection connection = new(StringConnection);
             connection.Open();
-            await using FbTransaction transaction = await connection.BeginTransactionAsync();
+            await using var transaction = await connection.BeginTransactionAsync();
             await using FbCommand command = new(sql, connection, transaction);
-            await using FbDataReader reader = await command.ExecuteReaderAsync();
+            await using var reader = await command.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
                 // Поднимаем первую букву 
-                string namePosition = FirstCharToUpper(reader.GetString(0));
-                List.Add(new Position
+                var namePosition = FirstCharToUpper(reader.GetString(0).Trim());
+                list.Add(new Position
                 {
                     Name = namePosition,
                     IsPed = (string)reader["IS_PED"] == "T",
@@ -57,11 +45,11 @@ namespace sync_swagger.Service.Firebird
                     free_b = reader["FREE_B"] != DBNull.Value ? reader.GetDecimal(7) : 0,
                     free_nb = reader["FREE_NB"] != DBNull.Value ? reader.GetDecimal(8) : 0,
                     priority = (short)(reader["PRIORITI_DOLJ"] != DBNull.Value ? reader.GetInt16(9) : 0),
-                    padeg = reader["NAME_ROD"] != DBNull.Value ? reader.GetString(10) : "Не указано"
+                    padeg = reader["NAME_ROD"] != DBNull.Value ? reader.GetString(10).Trim() : "Не указано"
 
                 });
             }
-            return List.AsReadOnly();
+            return list.AsReadOnly();
         }
         #endregion
 
@@ -95,10 +83,10 @@ namespace sync_swagger.Service.Firebird
                 list.Add(new Department
                 {
                     Id = reader.GetInt32(1),
-                    Phone = reader["phone"] != DBNull.Value ? reader.GetString(2) : "Не указано",
-                    Name = reader.GetString(3),
-                    Short = reader.GetString(4),
-                    Padeg = reader.GetString(5),
+                    Phone = reader["phone"] != DBNull.Value ? reader.GetString(2).Trim() : "Не указано",
+                    Name = reader.GetString(3).Trim(),
+                    Short = reader.GetString(4).Trim(),
+                    Padeg = reader.GetString(5).Trim(),
                     Type = typeDep,
                     Root = reader.GetString(7),
                     Positions = await GetPositionsAsync(reader.GetInt32(1))
@@ -199,16 +187,16 @@ namespace sync_swagger.Service.Firebird
                 list.Add(new Persons
                 {
                     persId = reader.GetInt32(27),
-                    FirstName = reader.GetString(0),
-                    Name = reader.GetString(1),
-                    LastName = reader.GetString(2),
+                    FirstName = reader.GetString(0).Trim(),
+                    Name = reader.GetString(1).Trim(),
+                    LastName = reader.GetString(2).Trim(),
                     Gender = reader.GetString(3) == "Жен" ? "female" : "male",
                     DateBirthay = reader["date_birth"] != DBNull.Value ? reader.GetDateTime(4).ToString("yyyy-MM-dd") : "1970-01-01",
                     Code = reader["IDENT_CODE"] != DBNull.Value ? reader.GetString(5) : "Не указано",
                     //photo = reader["photo"] as byte[] != null ? Convert.ToBase64String(reader["photo"] as byte[]) : null,
                     PhoneUA = reader.GetString(6),
                     PhoneLG = reader.GetString(7),
-                    Adress = reader.GetString(8),
+                    Adress = reader.GetString(8).Trim(),
                     TypePassport = typePassport,
                     SerialPassport = reader["pasp_ser"] != DBNull.Value ? reader.GetString(10) : "Не указано",
                     NumberPassport = reader["pasp_n"] != DBNull.Value ? reader.GetString(11) : "Не указано",
@@ -491,8 +479,8 @@ namespace sync_swagger.Service.Firebird
                     "";
                 list.Add(new PersonPosition
                 {
-                    Position = reader.GetString(0),
-                    Department = reader.GetString(1),
+                    Position = reader.GetString(0).Trim(),
+                    Department = reader.GetString(1).Trim(),
                     Order = $"{reader.GetString(2)}(от {reader.GetDateTime(3).ToShortDateString()})",
                     DateOrder = reader.GetDateTime(3).ToString("yyyy-MM-dd"),
                     TypeOrder = typeOrder,
@@ -520,40 +508,38 @@ namespace sync_swagger.Service.Firebird
 
         public static async Task<IList<Vacations>> GetVacations()
         {
-            List<Vacations> List = new();
-            string sql = " select s.id , o.period , o.dlina ,o.ostatok, o.date_nach , o.date_kon,  p.name , p.date_crt , t.name as typ " +
-                " from sotr s " +
-                " inner join otpusk o on s.id = o.sotr_id " +
-                " inner join typ_otpusk t on o.typ_nick = t.nick " +
-                " inner join prikaz p on o.prikaz_id = p.id " +
-                " inner join sotr_doljn sd on s.id = sd.sotr_id " +
-                " where sd.dolj_id <> 0" +
-                " order by s.id desc";
+            List<Vacations> list = new();
+            const string sql = " select s.id , o.period , o.dlina ,o.ostatok, o.date_nach , o.date_kon,  p.name , p.date_crt , t.name as typ " +
+                               " from sotr s " +
+                               " inner join otpusk o on s.id = o.sotr_id " +
+                               " inner join typ_otpusk t on o.typ_nick = t.nick " +
+                               " inner join prikaz p on o.prikaz_id = p.id " +
+                               " inner join sotr_doljn sd on s.id = sd.sotr_id " +
+                               " where sd.dolj_id <> 0" +
+                               " order by s.id desc";
             await using FbConnection connection = new(StringConnection);
             connection.Open();
-            await using FbTransaction transaction = await connection.BeginTransactionAsync();
+            await using var transaction = await connection.BeginTransactionAsync();
             await using FbCommand command = new(sql, connection, transaction);
-            await using FbDataReader reader = await command.ExecuteReaderAsync();
-            if (reader.HasRows)
+            await using var reader = await command.ExecuteReaderAsync();
+            if (!reader.HasRows) return list.AsReadOnly();
+            while (await reader.ReadAsync())
             {
-                while (await reader.ReadAsync())
+                list.Add(new Vacations
                 {
-                    List.Add(new Vacations
-                    {
-                        PersonId = reader.GetInt32(0),
-                        Period = reader["period"] != DBNull.Value ? reader.GetString(1) : "Не указано",
-                        Length = reader["dlina"] != DBNull.Value ? reader.GetInt32(2) : 0,
-                        Ostatok = reader["ostatok"] != DBNull.Value ? reader.GetInt32(3) : 0,
-                        DateStart = reader["date_nach"] != DBNull.Value ? reader.GetDateTime(4).ToString("yyyy-MM-dd") : null,
-                        DateEnd = reader["date_kon"] != DBNull.Value ? reader.GetDateTime(5).ToString("yyyy-MM-dd") : null,
-                        OrderName = $"{reader.GetString(6)}(от {reader.GetDateTime(7).ToShortDateString()})",
-                        DateOrder = reader.GetDateTime(7).ToString("yyyy-MM-dd"),
-                        TypeVacation = reader.GetString(8),
-                    });
+                    PersonId = reader.GetInt32(0),
+                    Period = reader["period"] != DBNull.Value ? reader.GetString(1) : "Не указано",
+                    Length = reader["dlina"] != DBNull.Value ? reader.GetInt32(2) : 0,
+                    Ostatok = reader["ostatok"] != DBNull.Value ? reader.GetInt32(3) : 0,
+                    DateStart = reader["date_nach"] != DBNull.Value ? reader.GetDateTime(4).ToString("yyyy-MM-dd") : null,
+                    DateEnd = reader["date_kon"] != DBNull.Value ? reader.GetDateTime(5).ToString("yyyy-MM-dd") : null,
+                    OrderName = $"{reader.GetString(6)}(от {reader.GetDateTime(7).ToShortDateString()})",
+                    DateOrder = reader.GetDateTime(7).ToString("yyyy-MM-dd"),
+                    TypeVacation = reader.GetString(8),
+                });
 
-                }
             }
-            return List.AsReadOnly();
+            return list.AsReadOnly();
         }
 
         #endregion
@@ -562,60 +548,49 @@ namespace sync_swagger.Service.Firebird
 
         public static async Task<int> GetCountDocuments()
         {
-            string sql = "select" +
-                        " count (distinct s.id) " +
-                        " from sotr s " +
-                        " inner join sotr_doljn sd on s.id = sd.sotr_id " +
-                        " inner join sotr_document sdd on s.id = sdd.sotr_id " +
-                        " inner join typ_sotr_doc td on sdd.typ = td.id " +
-                        " where sd.dolj_id <> 0 and sdd.name is not null ";
+            const string sql = "select" +
+                               " count (distinct s.id) " +
+                               " from sotr s " +
+                               " inner join sotr_doljn sd on s.id = sd.sotr_id " +
+                               " inner join sotr_document sdd on s.id = sdd.sotr_id " +
+                               " inner join typ_sotr_doc td on sdd.typ = td.id " +
+                               " where sd.dolj_id <> 0 and sdd.name is not null ";
 
             await using FbConnection connection = new(StringConnection);
             connection.Open();
-            await using FbTransaction transaction = await connection.BeginTransactionAsync();
+            await using var transaction = await connection.BeginTransactionAsync();
             await using FbCommand command = new(sql, connection, transaction);
-            await using FbDataReader reader = await command.ExecuteReaderAsync();
-            if (reader.Read())
-            {
-                return reader.GetInt32(0);
-            }
-            return 0;
-
+            await using var reader = await command.ExecuteReaderAsync();
+            return reader.Read() ? reader.GetInt32(0) : 0;
         }
         public static async Task<IList<Documents>> GetDocumentsAsync(int first = 100 , int skip = 0)
         {
             List<Documents> list = new();
             //string path = "D:\\documents\\";
-            string sql = $"select first {first} skip {skip} distinct s.id, td.name,  sdd.doc , sdd.name " +
-                " from sotr s  " +
-                " inner join sotr_doljn sd on s.id = sd.sotr_id " +
-                " inner join sotr_document sdd on s.id = sdd.sotr_id " +
-                " inner join typ_sotr_doc td on sdd.typ = td.id " +
-                " where sd.dolj_id <> 0 and sdd.name is not null and sdd.doc is not null " +
-                " order by s.id desc ";
+            var sql =
+                $"select first {first} skip {skip} distinct s.id, td.name,  sdd.doc , sdd.name  from sotr s   inner join sotr_doljn sd on s.id = sd.sotr_id  inner join sotr_document sdd on s.id = sdd.sotr_id  inner join typ_sotr_doc td on sdd.typ = td.id  where sd.dolj_id <> 0 and sdd.name is not null and sdd.doc is not null  order by s.id desc ";
 
             await using FbConnection connection = new(StringConnection);
             connection.Open();
-            await using FbTransaction transaction = await connection.BeginTransactionAsync();
+            await using var transaction = await connection.BeginTransactionAsync();
             await using FbCommand command = new(sql, connection, transaction);
-            await using FbDataReader reader = await command.ExecuteReaderAsync();
-            if (reader.HasRows)
+            await using var reader = await command.ExecuteReaderAsync();
+            if (!reader.HasRows) return list.AsReadOnly();
+            while (await reader.ReadAsync())
             {
-                while (await reader.ReadAsync())
-                {
                     
-                    //int random = Randoms();
+                //int random = Randoms();
 
-                    list.Add(new Documents
-                    {
-                        IdPers = reader.GetInt32(0),
-                        Type = reader.GetString(1),
-                        Document = reader["doc"] != DBNull.Value ? reader["doc"] as byte[] : null,
-                        Name = reader.GetString(3),
+                list.Add(new Documents
+                {
+                    IdPers = reader.GetInt32(0),
+                    Type = reader.GetString(1),
+                    Document = reader["doc"] != DBNull.Value ? reader["doc"] as byte[] : null,
+                    Name = reader.GetString(3),
 
-                    });
-                     await Task.Delay(100);
-                    /* if(reader["doc"] != DBNull.Value)
+                });
+                await Task.Delay(100);
+                /* if(reader["doc"] != DBNull.Value)
                      {
                          using FileStream imageFile = new($"{path}doc_{random}.jpg", FileMode.Create);
                          imageFile.Write((reader["doc"] as byte[]), 0, (reader["doc"] as byte[]).Length);
@@ -626,9 +601,8 @@ namespace sync_swagger.Service.Firebird
                      await Task.Delay(100);
                     */
 
-                }
             }
-            
+
             return list.AsReadOnly();
         }
 
@@ -637,37 +611,35 @@ namespace sync_swagger.Service.Firebird
         #region Список награждений
         public static async Task<IList<Rewarding>> GetRewarding()
         {
-            List<Rewarding> List = new();
-            string sql = " select distinct s.id , tn.name , sn.prim , p.name as order_name, p.date_crt as date_order  , sn.date_crt as date_issuing " +
-                " from sotr s " +
-                " inner join sotr_nagrad sn on s.id = sn.sotr_id " +
-                " inner join sotr_doljn sd on s.id = sd.sotr_id " +
-                " inner join typ_nagrady tn on sn.nagrad_id = tn.id " +
-                " left join prikaz p on p.id = sn.prikaz_id " +
-                " where sd.dolj_id <> 0" +
-                "order by s.id desc";
+            List<Rewarding> list = new();
+            const string sql = " select distinct s.id , tn.name , sn.prim , p.name as order_name, p.date_crt as date_order  , sn.date_crt as date_issuing " +
+                               " from sotr s " +
+                               " inner join sotr_nagrad sn on s.id = sn.sotr_id " +
+                               " inner join sotr_doljn sd on s.id = sd.sotr_id " +
+                               " inner join typ_nagrady tn on sn.nagrad_id = tn.id " +
+                               " left join prikaz p on p.id = sn.prikaz_id " +
+                               " where sd.dolj_id <> 0" +
+                               "order by s.id desc";
             await using FbConnection connection = new(StringConnection);
             connection.Open();
-            await using FbTransaction transaction = await connection.BeginTransactionAsync();
+            await using var transaction = await connection.BeginTransactionAsync();
             await using FbCommand command = new(sql, connection, transaction);
-            await using FbDataReader reader = await command.ExecuteReaderAsync();
-            if (reader.HasRows)
+            await using var reader = await command.ExecuteReaderAsync();
+            if (!reader.HasRows) return list.AsReadOnly();
+            while (await reader.ReadAsync())
             {
-                while (await reader.ReadAsync())
+                list.Add(new Rewarding
                 {
-                    List.Add(new Rewarding
-                    {
-                        PersonId = reader.GetInt32(0),
-                        Name = reader.GetString(1),
-                        NumberDocument = reader["prim"] != DBNull.Value ? reader.GetString(2) : null,
-                        OrderName = reader["date_order"] != DBNull.Value ? $"{reader.GetString(3)}(от {reader.GetDateTime(4).ToShortDateString()})" : null,
-                        DateOrder = reader["date_order"] != DBNull.Value ? reader.GetDateTime(4).ToString("yyyy-MM-dd") : null,
-                        DateIssuing = reader["date_issuing"] != DBNull.Value ? reader.GetDateTime(5).ToString("yyyy-MM-dd") : null,
-                    });
+                    PersonId = reader.GetInt32(0),
+                    Name = reader.GetString(1),
+                    NumberDocument = reader["prim"] != DBNull.Value ? reader.GetString(2) : null,
+                    OrderName = reader["date_order"] != DBNull.Value ? $"{reader.GetString(3)}(от {reader.GetDateTime(4).ToShortDateString()})" : null,
+                    DateOrder = reader["date_order"] != DBNull.Value ? reader.GetDateTime(4).ToString("yyyy-MM-dd") : null,
+                    DateIssuing = reader["date_issuing"] != DBNull.Value ? reader.GetDateTime(5).ToString("yyyy-MM-dd") : null,
+                });
 
-                }
             }
-            return List.AsReadOnly();
+            return list.AsReadOnly();
         }
 
         #endregion
@@ -676,17 +648,17 @@ namespace sync_swagger.Service.Firebird
         public static async Task<IList<Qualification>> GetQualification()
         {
             List<Qualification> list = new();
-            string sql = "select distinct s.id, kv.kurs_name , kv.date_nach , kv.date_kon , kv.mesto_prohogd ,kv.n_svid , kv.date_vidachy " +
-                " from sotr s " +
-                " inner join sotr_doljn sd on s.id = sd.sotr_id " +
-                " inner join kvalification kv on kv.sotr_id = s.id " +
-                " where sd.dolj_id <> 0 and kv.kurs_name is not null  order by s.id desc ";
+            const string sql = "select distinct s.id, kv.kurs_name , kv.date_nach , kv.date_kon , kv.mesto_prohogd ,kv.n_svid , kv.date_vidachy " +
+                               " from sotr s " +
+                               " inner join sotr_doljn sd on s.id = sd.sotr_id " +
+                               " inner join kvalification kv on kv.sotr_id = s.id " +
+                               " where sd.dolj_id <> 0 and kv.kurs_name is not null  order by s.id desc ";
 
             await using FbConnection connection = new(StringConnection);
             connection.Open();
-            await using FbTransaction transaction = await connection.BeginTransactionAsync();
+            await using var transaction = await connection.BeginTransactionAsync();
             await using FbCommand command = new(sql, connection, transaction);
-            await using FbDataReader reader = await command.ExecuteReaderAsync();
+            await using var reader = await command.ExecuteReaderAsync();
             if (reader.HasRows)
             {
                 while (await reader.ReadAsync())
@@ -711,37 +683,34 @@ namespace sync_swagger.Service.Firebird
         #region Ученое Звание
         public static async Task<IList<UchZvanie>> GetUchZvanieList()
         {
-            List<UchZvanie> List = new();
+            List<UchZvanie> list = new();
 
-            string sql = "select distinct s.id , tp.name, uz.kafedra , uz.date_prisv_zvan , uz.n_docum, uz.place_prisv_zvan " +
-                "from sotr s " +
-                " inner join sotr_doljn sd on s.id = sd.sotr_id " +
-                " inner join uch_zvan uz on s.id = uz.sotr_id " +
-                " inner join typ_zvan tp on uz.zvan_id = tp.id " +
-                " where sd.dolj_id <> 0 ";
+            const string sql = "select distinct s.id , tp.name, uz.kafedra , uz.date_prisv_zvan , uz.n_docum, uz.place_prisv_zvan " +
+                               "from sotr s " +
+                               " inner join sotr_doljn sd on s.id = sd.sotr_id " +
+                               " inner join uch_zvan uz on s.id = uz.sotr_id " +
+                               " inner join typ_zvan tp on uz.zvan_id = tp.id " +
+                               " where sd.dolj_id <> 0 ";
 
             await using FbConnection connection = new(StringConnection);
             connection.Open();
-            await using FbTransaction transaction = await connection.BeginTransactionAsync();
+            await using var transaction = await connection.BeginTransactionAsync();
             await using FbCommand command = new(sql, connection, transaction);
-            await using FbDataReader reader = await command.ExecuteReaderAsync();
-            if (reader.HasRows)
+            await using var reader = await command.ExecuteReaderAsync();
+            if (!reader.HasRows) return list.AsReadOnly();
+            while (await reader.ReadAsync())
             {
-                while (await reader.ReadAsync())
+                list.Add(new UchZvanie
                 {
-                    List.Add(new UchZvanie
-                    {
-                        IdPerson = reader.GetInt32(0),
-                        Type = reader.GetString(1),
-                        Department = reader["kafedra"] != DBNull.Value ? reader.GetString(2) : "Не указано",
-                        DateDateIssue = reader["date_prisv_zvan"] != DBNull.Value ? reader.GetDateTime(3).ToString("yyyy-MM-dd") : null,
-                        Document = reader["n_docum"] != DBNull.Value ? reader.GetString(4) : "Не указано",
-                        Place = reader["place_prisv_zvan"] != DBNull.Value ? reader.GetString(5) : "Не указано"
-                    });
-                }
-
+                    IdPerson = reader.GetInt32(0),
+                    Type = reader.GetString(1),
+                    Department = reader["kafedra"] != DBNull.Value ? reader.GetString(2) : "Не указано",
+                    DateDateIssue = reader["date_prisv_zvan"] != DBNull.Value ? reader.GetDateTime(3).ToString("yyyy-MM-dd") : null,
+                    Document = reader["n_docum"] != DBNull.Value ? reader.GetString(4) : "Не указано",
+                    Place = reader["place_prisv_zvan"] != DBNull.Value ? reader.GetString(5) : "Не указано"
+                });
             }
-            return List.AsReadOnly();
+            return list.AsReadOnly();
 
         }
         #endregion
@@ -750,42 +719,42 @@ namespace sync_swagger.Service.Firebird
         public static async Task<IList<ScientificDegree>> GetScientificDegrees()
         {
             List<ScientificDegree> list = new();
-            string sql = " select ns.sotr_id " +
-                ", ns.n_diploma" +
-                ", ns.date_vyd" +
-                ", ns.stepen_nick" +
-                ", ns.nauk_otrasl" +
-                ", ns.nauk_spec" +
-                ", ns.tema_disert" +
-                ", ns.place_prisv_zvan" +
-                ", ns.city_prisv" +
-                ", ns.jobs_after_asp" +
-                ", ns.kol_scientific_work" +
-                ", ns.kol_zayav_intelekt" +
-                ", ns.change_text" +
-                ", ns.comment" +
-                " from sotr s " +
-                " inner join sotr_doljn sd on s.id = sd.sotr_id " +
-                " inner join NAUCH_STEPEN ns on ns.sotr_id = s.id " +
-                " where sd.dolj_id <> 0 ";
+            const string sql = " select ns.sotr_id " +
+                               ", ns.n_diploma" +
+                               ", ns.date_vyd" +
+                               ", ns.stepen_nick" +
+                               ", ns.nauk_otrasl" +
+                               ", ns.nauk_spec" +
+                               ", ns.tema_disert" +
+                               ", ns.place_prisv_zvan" +
+                               ", ns.city_prisv" +
+                               ", ns.jobs_after_asp" +
+                               ", ns.kol_scientific_work" +
+                               ", ns.kol_zayav_intelekt" +
+                               ", ns.change_text" +
+                               ", ns.comment" +
+                               " from sotr s " +
+                               " inner join sotr_doljn sd on s.id = sd.sotr_id " +
+                               " inner join NAUCH_STEPEN ns on ns.sotr_id = s.id " +
+                               " where sd.dolj_id <> 0 ";
 
             await using FbConnection connection = new(StringConnection);
             connection.Open();
-            await using FbTransaction transaction = await connection.BeginTransactionAsync();
+            await using var transaction = await connection.BeginTransactionAsync();
             await using FbCommand command = new(sql, connection, transaction);
-            await using FbDataReader reader = await command.ExecuteReaderAsync();
+            await using var reader = await command.ExecuteReaderAsync();
 
             if (reader.HasRows)
             {
                 while (await reader.ReadAsync())
                 {
-                    string Stepen = reader.GetString(3) == "kn" ? "Кандидат наук" : "Доктор наук";
+                    var stepen = reader.GetString(3) == "kn" ? "Кандидат наук" : "Доктор наук";
                     list.Add(new ScientificDegree
                     {
                         PersonId = reader.GetInt32(0),
                         NumberDocument = reader["n_diploma"] != DBNull.Value ? reader.GetString(1) : "Не указано",
                         DateOfIssue = reader["date_vyd"] != DBNull.Value ? reader.GetDateTime(2).ToString("yyyy-MM-dd") : null,
-                        Type = Stepen,
+                        Type = stepen,
                         ScientificBranch = reader["nauk_otrasl"] != DBNull.Value ? reader.GetString(4) : "Не указано",
                         ScientificSpecialty = reader["nauk_otrasl"] != DBNull.Value ? reader.GetString(5).Replace("  ", " ") : "Не указано",
                         Dissertation = reader["tema_disert"] != DBNull.Value ? reader.GetString(6) : "Не указано",
@@ -811,43 +780,42 @@ namespace sync_swagger.Service.Firebird
         #region Служебные перемещения
         public static async Task<IList<Move>> GetMovesAsync()
         {
-            List<Move> List = new();
-            string sql = "select distinct " +
-                "sm.date_crt ," +
-                " p.name ," +
-                " p.typ ," +
-                " p.date_crt  ," +
-                " sm.kolvo_b ," +
-                " sm.kolvo_nb ," +
-                " sm.otdel_name ," +
-                " sm.dolj_name ," +
-                " sm.is_osn ," +
-                " sm.typ_dog ," +
-                " sm.date_kontr_nach ," +
-                " sm.date_kontr_kon ," +
-                " sm.date_drop ," +
-                " sm.OTP_DAYS ," +
-                " sm.prikaz_end, " +
-                " sotr_move.sotr_id," +
-                " p.DATE_CRT as dcrt "
-                + " from sotr s "
-                + " inner join sotr_doljn sd on s.id = sd.sotr_id " +
-                " inner join  sotr_move sm on sm.sotr_id = s.id " +
-                " inner join prikaz p on p.id = sm.prikaz_id " +
-                "  where sd.dolj_id <> 0 and sm.date_crt is not null and p.date_crt is not null" +
-                "  order by s.id desc ";
+            List<Move> list = new();
+            const string sql = "select distinct " +
+                               "sm.date_crt ," +
+                               " p.name ," +
+                               " p.typ ," +
+                               " p.date_crt  ," +
+                               " sm.kolvo_b ," +
+                               " sm.kolvo_nb ," +
+                               " sm.otdel_name ," +
+                               " sm.dolj_name ," +
+                               " sm.is_osn ," +
+                               " sm.typ_dog ," +
+                               " sm.date_kontr_nach ," +
+                               " sm.date_kontr_kon ," +
+                               " sm.date_drop ," +
+                               " sm.OTP_DAYS ," +
+                               " sm.prikaz_end, " +
+                               " sotr_move.sotr_id," +
+                               " p.DATE_CRT as dcrt "
+                               + " from sotr s "
+                               + " inner join sotr_doljn sd on s.id = sd.sotr_id " +
+                               " inner join  sotr_move sm on sm.sotr_id = s.id " +
+                               " inner join prikaz p on p.id = sm.prikaz_id " +
+                               "  where sd.dolj_id <> 0 and sm.date_crt is not null and p.date_crt is not null" +
+                               "  order by s.id desc ";
             //and sm.id <> 1192 and sm.id <> 2321 and sm.id <> 565 and sm.sotr_id <> 1459 and sm.sotr_id <> 1839
             await using FbConnection connection = new(StringConnection);
             connection.Open();
-            await using FbTransaction transaction = await connection.BeginTransactionAsync();
+            await using var transaction = await connection.BeginTransactionAsync();
             await using FbCommand command = new(sql, connection, transaction);
-            await using FbDataReader reader = await command.ExecuteReaderAsync();
-            if (reader.HasRows)
+            await using var reader = await command.ExecuteReaderAsync();
+            if (!reader.HasRows) return list.AsReadOnly();
+            while (await reader.ReadAsync())
             {
-                while (await reader.ReadAsync())
-                {
 
-                    /*string typeOrder =
+                /*string typeOrder =
                         reader.GetString(4) == "priyom" ? "Приём" :
                         reader.GetString(4) == "uvolnenie" ? "Увольнение" :
                         reader.GetString(4) == "perev" ? "Перевод" :
@@ -857,63 +825,62 @@ namespace sync_swagger.Service.Firebird
                         reader.GetString(4) == "den" ? "Денежная компенсация за неиспользованный отпуск" :
                         "";*/
 
-                    string typeOrder =
-                        reader.GetString(2) == "priyom" ? "Приём" :
-                        reader.GetString(2) == "uvolnenie" ? "Увольнение" :
-                        reader.GetString(2) == "perev" ? "Перевод" :
-                        reader.GetString(2) == "prodstd" ? "Продление СТД" :
-                        reader.GetString(2) == "den" ? "Денежная компенсация за неиспользованный отпуск" :
-                        "";
+                var typeOrder =
+                    reader.GetString(2) == "priyom" ? "Приём" :
+                    reader.GetString(2) == "uvolnenie" ? "Увольнение" :
+                    reader.GetString(2) == "perev" ? "Перевод" :
+                    reader.GetString(2) == "prodstd" ? "Продление СТД" :
+                    reader.GetString(2) == "den" ? "Денежная компенсация за неиспользованный отпуск" :
+                    "";
 
-                    //string dropNameOrder = reader.GetString(14)[..reader.GetString(14).IndexOf('(')].TrimEnd();
-                    //string replaceNameOrder = reader["prikaz_end"] != DBNull.Value ? reader.GetString(14) : null;
-
-
-
-                    // string[] words = replaceNameOrder?.Split(new char[] { '(' });
+                //string dropNameOrder = reader.GetString(14)[..reader.GetString(14).IndexOf('(')].TrimEnd();
+                //string replaceNameOrder = reader["prikaz_end"] != DBNull.Value ? reader.GetString(14) : null;
 
 
-                    //if(reader.GetInt32(15) == 6611)
-                    //    Console.WriteLine($"{words[0]} {words[1]}");
 
-                    string Contract = reader["typ_dog"] != DBNull.Value ? FirstCharToUpper(reader.GetString(9)) : "Не указано";
-                    string DateCrt = reader["dcrt"] != DBNull.Value ? reader.GetDateTime(3).ToShortDateString() : "";
+                // string[] words = replaceNameOrder?.Split(new char[] { '(' });
 
 
-                    if (reader.GetString(9) == "Постійне місце роботи")
-                    {
-                        Console.WriteLine(reader.GetInt32(15));
-                        Contract = "Постоянное место";
-                    }
-                    if (reader.GetString(9) == "Лікарняний лист")
-                    {
-                        Contract = "Больничный лист";
-                    }
+                //if(reader.GetInt32(15) == 6611)
+                //    Console.WriteLine($"{words[0]} {words[1]}");
+
+                var contract = reader["typ_dog"] != DBNull.Value ? FirstCharToUpper(reader.GetString(9)) : "Не указано";
+                var dateCrt = reader["dcrt"] != DBNull.Value ? reader.GetDateTime(3).ToShortDateString() : "";
 
 
-                    List.Add(new Move
-                    {
-                        dateInsert = reader.GetDateTime(0).ToString("yyyy-MM-dd"),
-                        order = $"{reader.GetString(1)} от({DateCrt})",
-                        typeOrder = typeOrder,
-                        count_budget = reader["kolvo_b"] != DBNull.Value ? reader.GetDecimal(4) : 0,
-                        count_nobudget = reader["kolvo_nb"] != DBNull.Value ? reader.GetDecimal(5) : 0,
-                        name_dep = reader["otdel_name"] != DBNull.Value ? reader.GetString(6) : "Не укаазно",
-                        position = reader["dolj_name"] != DBNull.Value ? reader.GetString(7) : "Не укаазно",
-                        isMain = reader.GetString(8) == "T",
-                        Contract = reader["typ_dog"] != DBNull.Value ? reader.GetString(9) : "Не указано",
-                        dateBegin = reader["date_kontr_nach"] != DBNull.Value ? reader.GetDateTime(10).ToString("yyyy-MM-dd") : null,
-                        dateEnd = reader["date_kontr_kon"] != DBNull.Value ? reader.GetDateTime(11).ToString("yyyy-MM-dd") : null,
-                        dateDrop = reader["date_drop"] != DBNull.Value ? reader.GetDateTime(12).ToString("yyyy-MM-dd") : null,
-                        dayVacation = reader["OTP_DAYS"] != DBNull.Value ? reader.GetInt32(13) : 0,
-                        orderDrop = reader["prikaz_end"] != DBNull.Value ? reader.GetString(14).Replace("  ", " ") : null,
-                        PersonId = reader.GetInt32(15),
-                        DateOrder = reader["dcrt"] != DBNull.Value ? reader.GetDateTime(16).ToString("yyyy-MM-dd") : null,
-
-                    });
+                if (reader.GetString(9) == "Постійне місце роботи")
+                {
+                    Console.WriteLine(reader.GetInt32(15));
+                    contract = "Постоянное место";
                 }
+                if (reader.GetString(9) == "Лікарняний лист")
+                {
+                    contract = "Больничный лист";
+                }
+
+
+                list.Add(new Move
+                {
+                    dateInsert = reader.GetDateTime(0).ToString("yyyy-MM-dd"),
+                    order = $"{reader.GetString(1)} от({dateCrt})",
+                    typeOrder = typeOrder,
+                    count_budget = reader["kolvo_b"] != DBNull.Value ? reader.GetDecimal(4) : 0,
+                    count_nobudget = reader["kolvo_nb"] != DBNull.Value ? reader.GetDecimal(5) : 0,
+                    name_dep = reader["otdel_name"] != DBNull.Value ? reader.GetString(6) : "Не укаазно",
+                    position = reader["dolj_name"] != DBNull.Value ? reader.GetString(7) : "Не укаазно",
+                    isMain = reader.GetString(8) == "T",
+                    Contract = reader["typ_dog"] != DBNull.Value ? reader.GetString(9) : "Не указано",
+                    dateBegin = reader["date_kontr_nach"] != DBNull.Value ? reader.GetDateTime(10).ToString("yyyy-MM-dd") : null,
+                    dateEnd = reader["date_kontr_kon"] != DBNull.Value ? reader.GetDateTime(11).ToString("yyyy-MM-dd") : null,
+                    dateDrop = reader["date_drop"] != DBNull.Value ? reader.GetDateTime(12).ToString("yyyy-MM-dd") : null,
+                    dayVacation = reader["OTP_DAYS"] != DBNull.Value ? reader.GetInt32(13) : 0,
+                    orderDrop = reader["prikaz_end"] != DBNull.Value ? reader.GetString(14).Replace("  ", " ") : null,
+                    PersonId = reader.GetInt32(15),
+                    DateOrder = reader["dcrt"] != DBNull.Value ? reader.GetDateTime(16).ToString("yyyy-MM-dd") : null,
+
+                });
             }
-            return List.AsReadOnly();
+            return list.AsReadOnly();
 
         }
         #endregion
@@ -921,26 +888,23 @@ namespace sync_swagger.Service.Firebird
         #region Генерация фотографий 3x4
         public static async Task<IList<Image>> GetPhoto(int first = 100, int skip = 0)
         {
-            List<Image> List = new();
-            string sql = $"select first {first} skip {skip} s.id, s.photo" +
-                " from sotr s" +
-                " inner join sotr_doljn sd on s.id = sd.sotr_id " +
-                " where s.photo is not null and sd.dolj_id <> 0" +
-                " order by s.id desc ";
+            List<Image> list = new();
+            var sql =
+                $"select first {first} skip {skip} s.id, s.photo from sotr s inner join sotr_doljn sd on s.id = sd.sotr_id  where s.photo is not null and sd.dolj_id <> 0 order by s.id desc ";
 
             await using FbConnection connection = new(StringConnection);
             connection.Open();
-            await using FbTransaction transaction = await connection.BeginTransactionAsync();
+            await using var transaction = await connection.BeginTransactionAsync();
             await using FbCommand command = new(sql, connection, transaction);
-            await using FbDataReader reader = await command.ExecuteReaderAsync();
+            await using var reader = await command.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
                 try
                 {
-                    List.Add(new Image
+                    list.Add(new Image
                     {
                         id_person = reader.GetInt32(0),
-                        photo = reader["photo"] as byte[] != null ? Convert.ToBase64String(reader["photo"] as byte[]) : null
+                        photo = reader["photo"] is byte[] ? Convert.ToBase64String(reader["photo"] as byte[] ?? Array.Empty<byte>()) : null
                         //photo = (byte[])reader["photo"],
                     });
 
@@ -951,7 +915,7 @@ namespace sync_swagger.Service.Firebird
                 }
                
             }
-            return List.AsReadOnly();
+            return list.AsReadOnly();
 
         }
         #endregion
