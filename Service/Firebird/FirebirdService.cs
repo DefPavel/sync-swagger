@@ -477,6 +477,7 @@ namespace sync_swagger.Service.Firebird
                     reader.GetString(4) == "prodstd" ? "Продление СТД" :
                     reader.GetString(4) == "den" ? "Денежная компенсация за неиспользованный отпуск" :
                     "";
+                
                 list.Add(new PersonPosition
                 {
                     Position = reader.GetString(0).Trim(),
@@ -490,7 +491,7 @@ namespace sync_swagger.Service.Firebird
                     CountBudget = reader.GetDecimal(8),
                     CountNoBudget = reader.GetDecimal(9),
                     IsPluralismOter = reader.GetString(10) == "T", //Внешний совместитель
-                    IsPluralismInner = reader.GetString(7) == "F", // Совместитель
+                    IsPluralismInner = (reader.GetString(7) == "F" && reader.GetString(10) == "F"), // Совместитель
                     IsPed = reader.GetString(11) == "T",
                     DateStartContract = reader["date_kontr_nach"] != DBNull.Value ? reader.GetDateTime(12).ToString("yyyy-MM-dd") : null,
                     DateEndContract = reader["date_kontr_kon"] != DBNull.Value ? reader.GetDateTime(13).ToString("yyyy-MM-dd") : null,
